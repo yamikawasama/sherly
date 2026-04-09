@@ -31,8 +31,7 @@ const Store = {
       await this._ref(path).set(value);
       this._cache[path] = value;
     } catch(e){
-      console.error('Firebase write error:', path, e);
-      alert('❌ บันทึกข้อมูลไม่สำเร็จ! กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตค่ะ');
+      console.warn('Firebase write error:', path, e.message);
     }
   },
 
