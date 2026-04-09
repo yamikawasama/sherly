@@ -79,7 +79,8 @@ const Store = {
       'buttons','promos','faq','rentals','bookings','bank','chatbot',
       'banner_size','mascot_size','chatbot_size','chatbot_bottom',
       'order_banner','gift_banner','order_banner_size','gift_banner_size',
-      'loading_img','loading_img_size'
+      'loading_img','loading_img_size',
+      'receipt_note_topup','receipt_note_send','receipt_note_rental'
     ];
 
     // Fill cache with defaults first (so page can render immediately if Firebase is slow)
@@ -177,12 +178,16 @@ const Store = {
   getSkinPacks(){ return this._cache['skin_packs'] || DEFAULT_SKIN_PACKS; },
   setSkinPacks(p){ this._fbSet('skin_packs', p); },
 
+  getReceiptNote(type){ return this._cache[`receipt_note_${type}`] || 'ขอบคุณที่ใช้บริการค่ะ 🐰💕'; },
+  setReceiptNote(type, note){ this._fbSet(`receipt_note_${type}`, note); },
+
   getOrders(){ return this._cache['orders'] || []; },
   setOrders(o){ this._fbSet('orders', o); },
   addOrder(order){
     const orders = this.getOrders();
     order.id = Date.now();
-    order.queueNumber = orders.length + 1;
+    const sameType = orders.filter(o => o.type === order.type);
+    order.queueNumber = sameType.length + 1;
     order.status = 'waiting';
     order.createdAt = new Date().toISOString();
     orders.push(order);

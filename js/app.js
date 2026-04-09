@@ -35,8 +35,8 @@ const App = {
   // ========== NAV ==========
   setupNav(){document.querySelectorAll('.nav-item[data-page]').forEach(item=>{item.addEventListener('click',e=>{e.preventDefault();window.location.hash=item.dataset.page;});});},
   navigate(page){
-    if((page==='order'||page==='gift')&&!Store.getCurrentUser()){this.showAuthModal('login');this.showToast('กรุณาเข้าสู่ระบบก่อนค่ะ 🐰','warning');return;}
-    if(page==='admin'&&!this.adminLoggedIn){this.showAdminLogin();return;}
+    if((page==='order'||page==='gift'||page==='myorders')&&!Store.getCurrentUser()&&!this.adminLoggedIn){this.showAuthModal('login');this.showToast('กรุณาเข้าสู่ระบบก่อนค่ะ 🐰','warning');return;}
+    if(page==='admin'&&!this.adminLoggedIn){this.showAuthModal('login');this.showToast('กรุณาเข้าสู่ระบบแอดมินค่ะ','warning');return;}
     this.currentPage=page;
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const nav=document.querySelector(`.nav-item[data-page="${page}"]`);if(nav)nav.classList.add('active');
@@ -335,7 +335,7 @@ const App = {
     this.showToast('✅ สั่งซื้อสำเร็จ! รอแอดมินตรวจสอบค่ะ♡','success');this.showReceipt(order);
   },
 
-  showReceipt(order){const c=document.getElementById(`page-${this.currentPage}`);const now=new Date();c.innerHTML=`<div class="page-header animate-fade-in-up"><h1 class="page-title">🧾 ใบเสร็จ</h1></div><div class="animate-bounce-in"><div class="receipt"><div class="receipt-header"><div style="font-size:2rem;">🐰</div><h2 style="font-size:1.2rem;margin:4px 0;">Sherly Panty</h2><div style="margin-top:8px;font-size:0.75rem;color:#aaa;">เลขที่: #${String(order.id).slice(-6)} | คิว: ${order.queueNumber}</div></div><div style="margin:12px 0;"><div class="receipt-row"><span style="color:#999;">วันที่:</span><span>${now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</span></div><div class="receipt-row"><span style="color:#999;">ลูกค้า:</span><span>${order.gameName}</span></div><div class="receipt-row"><span style="color:#999;">UID:</span><span>${order.uid}</span></div></div><div style="border-top:2px dashed #ddd;padding-top:12px;">${(order.items||[]).map(i=>`<div class="receipt-row"><span>${i.isSkin?'✨':'💎'} ${i.name} x${i.qty}</span><span>฿${(i.price*i.qty).toLocaleString()}</span></div>`).join('')}</div><div class="receipt-total"><div class="receipt-row"><span>ยอดเติม</span><span>${(order.topupEcho||0).toLocaleString()} กระดุม</span></div><div class="receipt-row"><span>กระดุมรวม</span><span>${(order.totalEcho||0).toLocaleString()}</span></div><div class="receipt-row"><span style="font-size:1.1rem;">💰 ยอดรวม</span><span style="color:#F2A7B3;font-size:1.3rem;">฿${(order.totalPrice||0).toLocaleString()}</span></div></div><div class="receipt-footer"><p>สถานะ: ⏳ รอ</p><p style="margin-top:4px;">ขอบคุณที่ใช้บริการค่ะ 🐰💕</p></div></div></div><div style="display:flex;gap:12px;justify-content:center;margin-top:24px;"><a href="https://www.facebook.com/share/16RiyzPHqX/" target="_blank" class="btn btn-primary btn-lg">📞 ติดต่อแอดมิน</a><button class="btn btn-secondary btn-lg" onclick="App.navigate('home')">🏠 กลับ</button></div>`;},
+  showReceipt(order){const c=document.getElementById(`page-${this.currentPage}`);const now=new Date();const rNote=Store.getReceiptNote(order.type||'topup');c.innerHTML=`<div class="page-header animate-fade-in-up"><h1 class="page-title">🧾 ใบเสร็จ${order.type==='topup'?' (เติม)':order.type==='send'?' (ส่ง)':order.type==='rental'?' (เช่า)':''}</h1></div><div class="animate-bounce-in"><div class="receipt"><div class="receipt-header"><div style="font-size:2rem;">🐰</div><h2 style="font-size:1.2rem;margin:4px 0;">Sherly Panty</h2><div style="margin-top:8px;font-size:0.75rem;color:#aaa;">เลขที่: #${String(order.id).slice(-6)} | คิว${order.type==='topup'?'เติม':order.type==='send'?'ส่ง':'เช่า'}: ${order.queueNumber}</div></div><div style="margin:12px 0;"><div class="receipt-row"><span style="color:#999;">วันที่:</span><span>${now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</span></div><div class="receipt-row"><span style="color:#999;">ลูกค้า:</span><span>${order.gameName}</span></div><div class="receipt-row"><span style="color:#999;">UID:</span><span>${order.uid}</span></div></div><div style="border-top:2px dashed #ddd;padding-top:12px;">${(order.items||[]).map(i=>`<div class="receipt-row"><span>${i.isSkin?'✨':'💎'} ${i.name} x${i.qty||1}</span><span>฿${((i.price||0)*(i.qty||1)).toLocaleString()}</span></div>`).join('')}</div><div class="receipt-total"><div class="receipt-row"><span style="font-size:1.1rem;">💰 ยอดรวม</span><span style="color:#F2A7B3;font-size:1.3rem;">฿${(order.totalPrice||0).toLocaleString()}</span></div></div><div class="receipt-footer"><p>สถานะ: ⏳ รอ</p><p style="margin-top:4px;">${rNote}</p></div></div></div><div style="display:flex;gap:12px;justify-content:center;margin-top:24px;"><a href="https://www.facebook.com/share/16RiyzPHqX/" target="_blank" class="btn btn-primary btn-lg">📞 ติดต่อแอดมิน</a><button class="btn btn-secondary btn-lg" onclick="App.navigate('home')">🏠 กลับ</button></div>`;},
 
   // ========== GIFT ==========
   renderGift(){
@@ -506,7 +506,7 @@ const App = {
       <div class="card"><h3 style="margin-bottom:16px;">🏦 ข้อมูลบัญชี</h3><div class="note-box info">🔒 ต้องใส่รหัสแอดมินเพื่อบันทึก</div>
       ${(bank.methods||[]).map((m,i)=>`<div style="padding:12px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;"><div style="font-weight:600;margin-bottom:8px;">${m.icon} ${m.name}</div><div class="grid-3" style="gap:8px;"><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ชื่อบัญชี</label><input class="form-input" id="bName${i}" value="${m.accountName}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">เลขบัญชี</label><input class="form-input" id="bNum${i}" value="${m.accountNumber}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ข้อความโน๊ต</label><input class="form-input" id="bNote${i}" value="${m.noteText}" style="padding:8px;"></div></div></div>`).join('')}
       <div class="form-group"><label class="form-label">รหัสแอดมิน (ยืนยัน)</label><input class="form-input" type="password" id="adBankPassConfirm" placeholder="ใส่รหัสแอดมิน"></div>
-      <button class="btn btn-primary" onclick="App._saveBankInfo()">💾 บันทึกส่วนบัญชี</button></div>`;
+      <button class="btn btn-primary" onclick="App._saveBankInfo()">💾 บันทึกส่วนบัญชี</button></div>${this._renderReceiptNotes()}`;
   },
   _storeUpload(event,key){
     const file=event.target.files[0];if(!file)return;
@@ -580,6 +580,20 @@ const App = {
     this.renderAdmin();
   },
   _saveBankInfo(){const pass=document.getElementById('adBankPassConfirm')?.value;if(pass!==Store.getAdminPass()){this.showToast('❌ รหัสไม่ถูกต้อง','error');return;}const bank=Store.getBank();(bank.methods||[]).forEach((m,i)=>{m.accountName=document.getElementById(`bName${i}`)?.value||m.accountName;m.accountNumber=document.getElementById(`bNum${i}`)?.value||m.accountNumber;m.noteText=document.getElementById(`bNote${i}`)?.value||m.noteText;});Store.setBank(bank);this.showToast('✅ บันทึกบัญชีเรียบร้อย!');},
+  _renderReceiptNotes(){
+    return`<div class="card" style="margin-top:20px;"><h3 style="margin-bottom:16px;">🧾 ข้อความใบเสร็จ</h3>
+      <div class="note-box info" style="margin-bottom:12px;">ข้อความ "ขอบคุณที่ใช้บริการ" ในใบเสร็จแต่ละประเภท แก้ไขได้ค่ะ</div>
+      <div class="form-group"><label class="form-label">💎 ใบเสร็จเติม</label><input class="form-input" id="receiptNoteTopup" value="${Store.getReceiptNote('topup')}"></div>
+      <div class="form-group"><label class="form-label">🎁 ใบเสร็จส่ง</label><input class="form-input" id="receiptNoteSend" value="${Store.getReceiptNote('send')}"></div>
+      <div class="form-group"><label class="form-label">🎮 ใบเสร็จเช่า</label><input class="form-input" id="receiptNoteRental" value="${Store.getReceiptNote('rental')}"></div>
+      <button class="btn btn-primary" onclick="App._saveReceiptNotes()">💾 บันทึกข้อความใบเสร็จ</button></div>`;
+  },
+  _saveReceiptNotes(){
+    Store.setReceiptNote('topup',document.getElementById('receiptNoteTopup')?.value||'');
+    Store.setReceiptNote('send',document.getElementById('receiptNoteSend')?.value||'');
+    Store.setReceiptNote('rental',document.getElementById('receiptNoteRental')?.value||'');
+    this.showToast('✅ บันทึกข้อความใบเสร็จ!');
+  },
 
   _adminButtons(ac){
     const btns=Store.getButtons();
@@ -890,10 +904,29 @@ const App = {
     if(mode==='login'){modal.innerHTML=`<button class="modal-close" onclick="App.hideAuthModal()">✕</button><h2 class="modal-title">🐰 เข้าสู่ระบบ</h2><div class="form-group"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="loginUser" placeholder="username"></div><div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="loginPass" placeholder="password" onkeypress="if(event.key==='Enter')App.doLogin()"></div><button class="btn btn-primary btn-lg" style="width:100%;margin-bottom:12px;" onclick="App.doLogin()">เข้าสู่ระบบ</button><p style="text-align:center;font-size:0.85rem;">ยังไม่มีบัญชี? <a href="#" style="color:var(--primary);font-weight:600;" onclick="App.renderAuthForm('register')">สมัครสมาชิก</a></p><p style="text-align:center;margin-top:8px;"><a href="#" style="color:var(--text-light);font-size:0.8rem;" onclick="App.forgotPassword()">ลืมรหัสผ่าน?</a></p>`;}
     else{modal.innerHTML=`<button class="modal-close" onclick="App.hideAuthModal()">✕</button><h2 class="modal-title">🐰 สมัครสมาชิก</h2><div class="form-group"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="regUser" placeholder="username"></div><div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="regPass" placeholder="password"></div><div class="form-group"><label class="form-label">Facebook/Discord</label><input class="form-input" id="regContact" placeholder="ชื่อ Facebook"></div><div class="form-group"><label class="form-label">ชื่อในเกม</label><input class="form-input" id="regGameName" placeholder="ชื่อในเกม"></div><div class="grid-2"><div class="form-group"><label class="form-label">UID</label><input class="form-input" id="regUID" placeholder="User ID"></div><div class="form-group"><label class="form-label">Server</label><select class="form-select" id="regServer"><option value="Asia">Asia</option><option value="NA/EU">NA/EU</option></select></div></div><button class="btn btn-primary btn-lg" style="width:100%;margin-bottom:12px;" onclick="App.doRegister()">สมัครสมาชิก</button><p style="text-align:center;font-size:0.85rem;"><a href="#" style="color:var(--primary);font-weight:600;" onclick="App.renderAuthForm('login')">มีบัญชีแล้ว? เข้าสู่ระบบ</a></p>`;}
   },
-  doLogin(){const u=document.getElementById('loginUser')?.value;const p=document.getElementById('loginPass')?.value;if(!u||!p){this.showToast('กรอกข้อมูลค่ะ','warning');return;}const r=Store.login(u,p);if(r.success){this.hideAuthModal();this.updateAuthUI();this.showToast(`🐰 สวัสดีค่ะ ${r.user.gameName||r.user.username}!💕`);}else this.showToast(r.error,'error');},
+  doLogin(){const u=document.getElementById('loginUser')?.value;const p=document.getElementById('loginPass')?.value;if(!u||!p){this.showToast('กรอกข้อมูลค่ะ','warning');return;}if(u===Store.getAdminUser()&&p===Store.getAdminPass()){this.adminLoggedIn=true;this.hideAuthModal();this.updateAuthUI();this.showToast('🔑 เข้าสู่ระบบแอดมินสำเร็จ!');return;}const r=Store.login(u,p);if(r.success){this.hideAuthModal();this.updateAuthUI();this.showToast(`🐰 สวัสดีค่ะ ${r.user.gameName||r.user.username}!💕`);}else this.showToast(r.error,'error');},
   doRegister(){const username=document.getElementById('regUser')?.value;const password=document.getElementById('regPass')?.value;const contact=document.getElementById('regContact')?.value;const gameName=document.getElementById('regGameName')?.value;const uid=document.getElementById('regUID')?.value;const server=document.getElementById('regServer')?.value;if(!username||!password){this.showToast('กรอก username/password ค่ะ','warning');return;}const r=Store.register({username,password,contact,gameName,uid,server});if(r.success){this.hideAuthModal();this.updateAuthUI();this.showToast(`🐰 สมัครสำเร็จ!💕`);}else this.showToast(r.error,'error');},
   forgotPassword(){const modal=document.querySelector('#authModal .modal');if(modal)modal.innerHTML=`<button class="modal-close" onclick="App.hideAuthModal()">✕</button><div style="text-align:center;padding:20px;"><div style="font-size:3rem;margin-bottom:16px;">🔑</div><h2 style="margin-bottom:12px;">ลืมรหัสผ่าน?</h2><p style="color:var(--text-secondary);margin-bottom:20px;">ติดต่อแก้ไขรหัสผ่านกับแอดมินได้เลยค่ะ</p><a href="https://www.facebook.com/share/16RiyzPHqX/" target="_blank" class="btn btn-primary btn-lg">📘 ติดต่อ Facebook</a><p style="margin-top:16px;"><a href="#" style="color:var(--primary);font-size:0.85rem;" onclick="App.renderAuthForm('login')">← กลับ</a></p></div>`;},
-  updateAuthUI(){const user=Store.getCurrentUser();const btn=document.getElementById('userButton');const avatar=document.getElementById('userAvatar');const name=document.getElementById('userName');if(user){if(avatar)avatar.textContent='🐰';if(name)name.textContent=user.gameName||user.username;if(btn)btn.onclick=()=>{if(confirm('ออกจากระบบ?')){Store.logout();this.updateAuthUI();this.showToast('👋 ออกจากระบบแล้ว');}};}else{if(avatar)avatar.textContent='👤';if(name)name.textContent='เข้าสู่ระบบ';if(btn)btn.onclick=()=>this.showAuthModal('login');}},
+  updateAuthUI(){
+    const user=Store.getCurrentUser();const btn=document.getElementById('userButton');const avatar=document.getElementById('userAvatar');const name=document.getElementById('userName');
+    const adminNav=document.getElementById('adminNavItem');const myordersNav=document.getElementById('myordersNavItem');
+    if(this.adminLoggedIn){
+      if(adminNav)adminNav.style.display='';
+      if(myordersNav)myordersNav.style.display='';
+      if(avatar)avatar.textContent='👑';if(name)name.textContent='แอดมิน';
+      if(btn)btn.onclick=()=>{if(confirm('ออกจากระบบแอดมิน?')){this.adminLoggedIn=false;Store.logout();this.updateAuthUI();this.showToast('👋 ออกจากระบบแล้ว');this.navigate('home');}};
+    }else if(user){
+      if(adminNav)adminNav.style.display='none';
+      if(myordersNav)myordersNav.style.display='';
+      if(avatar)avatar.textContent='🐰';if(name)name.textContent=user.gameName||user.username;
+      if(btn)btn.onclick=()=>{if(confirm('ออกจากระบบ?')){Store.logout();this.updateAuthUI();this.showToast('👋 ออกจากระบบแล้ว');}};
+    }else{
+      if(adminNav)adminNav.style.display='none';
+      if(myordersNav)myordersNav.style.display='none';
+      if(avatar)avatar.textContent='👤';if(name)name.textContent='เข้าสู่ระบบ';
+      if(btn)btn.onclick=()=>this.showAuthModal('login');
+    }
+  },
 
   setupMobile(){const toggle=document.getElementById('mobileToggle');const sidebar=document.querySelector('.sidebar');const overlay=document.querySelector('.sidebar-overlay');if(toggle)toggle.addEventListener('click',()=>{sidebar?.classList.toggle('open');overlay?.classList.toggle('active');});if(overlay)overlay.addEventListener('click',()=>{sidebar?.classList.remove('open');overlay?.classList.remove('active');});},
   setupSidebarToggle(){
