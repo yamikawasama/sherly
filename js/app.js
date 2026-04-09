@@ -448,12 +448,16 @@ const App = {
         const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
         const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);
         const dataUrl=canvas.toDataURL('image/webp',0.8);
-        App._uploadedImages[key]=dataUrl;
         const prev=document.getElementById(`prev${key.charAt(0).toUpperCase()+key.slice(1)}`);
         if(prev)prev.innerHTML=`<img src="${dataUrl}" style="max-width:300px;border-radius:12px;margin-top:8px;">`;
-        if(key==='orderbanner')Store.setOrderBanner(dataUrl);
-        if(key==='giftbanner')Store.setGiftBanner(dataUrl);
-        if(key==='loadingimg')Store.setLoadingImg(dataUrl);
+        // Save directly to Firebase immediately
+        if(key==='banner'){Store.setBanner(dataUrl);}
+        else if(key==='mascot'){Store.setMascot(dataUrl);App.updateMascot();}
+        else if(key==='chatbotimg'){Store.setChatbotImg(dataUrl);App.updateChatbotImg();}
+        else if(key==='orderbanner'){Store.setOrderBanner(dataUrl);}
+        else if(key==='giftbanner'){Store.setGiftBanner(dataUrl);}
+        else if(key==='loadingimg'){Store.setLoadingImg(dataUrl);}
+        App.showToast('✅ อัปโหลดรูปสำเร็จ! ทุกเครื่องจะเห็นภาพใหม่ค่ะ');
       };
       img.src=e.target.result;
     };
@@ -477,12 +481,7 @@ const App = {
     Store.setOrderBannerSize(obSize);Store.setGiftBannerSize(gbSize);
     Store.setLoadingImgSize(loadSize);
 
-    if(this._uploadedImages.banner) Store.setBanner(this._uploadedImages.banner);
-    if(this._uploadedImages.mascot) {Store.setMascot(this._uploadedImages.mascot);this.updateMascot();}
-    if(this._uploadedImages.chatbotimg) {Store.setChatbotImg(this._uploadedImages.chatbotimg);this.updateChatbotImg();}
-    if(this._uploadedImages.orderbanner) Store.setOrderBanner(this._uploadedImages.orderbanner);
-    if(this._uploadedImages.giftbanner) Store.setGiftBanner(this._uploadedImages.giftbanner);
-    if(this._uploadedImages.loadingimg) Store.setLoadingImg(this._uploadedImages.loadingimg);
+    // Images are now saved directly on upload, no need to save again here
     
     this._uploadedImages={};
     

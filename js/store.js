@@ -130,17 +130,22 @@ const Store = {
       'banner_size','chatbot_bottom'];
     simplePaths.forEach(p => this._listen(p));
 
-    // Listeners with UI refresh callbacks
-    this._listen('shop_status', () => { if(typeof App !== 'undefined') App.updateShopStatus(); });
-    this._listen('marquee', () => { if(typeof App !== 'undefined') App.updateMarquee(); });
-    this._listen('banner', () => { if(typeof App !== 'undefined' && App.currentPage === 'home') App.navigate('home'); });
-    this._listen('mascot', () => { if(typeof App !== 'undefined') App.updateMascot(); });
-    this._listen('mascot_size', () => { if(typeof App !== 'undefined') App.applyMascotSize(); });
-    this._listen('chatbot_img', () => { if(typeof App !== 'undefined') App.updateChatbotImg(); });
-    this._listen('chatbot_size', () => { if(typeof App !== 'undefined') App.applyChatbotSize(); });
-    this._listen('loading_img', () => { if(typeof App !== 'undefined') App.applyLoadingImg(); });
-    this._listen('order_banner', () => { if(typeof App !== 'undefined' && App.currentPage === 'order') App.navigate('order'); });
-    this._listen('gift_banner', () => { if(typeof App !== 'undefined' && App.currentPage === 'gift') App.navigate('gift'); });
+    // Auto-refresh UI function
+    const refreshUI = () => {
+      if(typeof App === 'undefined') return;
+      App.updateMascot(); App.updateChatbotImg(); App.applyChatbotSize();
+      App.applyMascotSize(); App.applyChatbotBottom(); App.applyLoadingImg();
+      App.updateMarquee(); App.updateShopStatus();
+      // Re-render current page to show new images
+      App.navigate(App.currentPage);
+    };
+
+    // Image/visual listeners - trigger full UI refresh
+    const visualPaths = ['banner','mascot','mascot_size','chatbot_img','chatbot_size',
+      'loading_img','order_banner','gift_banner','shop_status','marquee'];
+    visualPaths.forEach(p => {
+      this._listen(p, () => { setTimeout(refreshUI, 300); });
+    });
   },
 
   onReady(cb){
