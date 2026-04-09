@@ -148,15 +148,46 @@ const App = {
     this._renderCalcPanel();this.recalcCart();
   },
 
-  // Auto-calc skin pack from targetEcho
-  _autoCalcSkinPack(targetEcho){
-    const products=Store.getProducts().sort((a,b)=>b.totalEcho-a.totalEcho);
-    let remaining=targetEcho,packs=[],totalEcho=0,topupEcho=0,pvP=0,nmP=0;
-    for(const p of products){
-      const count=Math.floor(remaining/p.totalEcho);
-      if(count>0){packs.push({pid:p.id,qty:count,totalEcho:p.totalEcho,echoes:p.echoes});remaining-=count*p.totalEcho;totalEcho+=count*p.totalEcho;topupEcho+=count*p.echoes;pvP+=count*p.privatePrice;nmP+=count*p.normalPrice;}
+  _autoCalcSkinPack(targetEchoStr){
+    const storeProducts=Store.getProducts();
+    let packsMap={},totalEcho=0,topupEcho=0,pvP=0,nmP=0;
+    
+    if(typeof targetEchoStr==='string' && targetEchoStr.includes('+')){
+      const parts=targetEchoStr.split('+').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x));
+      for(const val of parts){
+        const p=storeProducts.find(x=>x.totalEcho===val);
+        if(p){if(!packsMap[p.id])packsMap[p.id]={pid:p.id,qty:0,totalEcho:p.totalEcho,echoes:p.echoes,pvP:p.privatePrice,nmP:p.normalPrice};packsMap[p.id].qty++;totalEcho+=p.totalEcho;topupEcho+=p.echoes;pvP+=p.privatePrice;nmP+=p.normalPrice;}
+      }
+    }else{
+      let target=parseInt(targetEchoStr)||0;if(target<=0)return{packs:[],totalEcho:0,topupEcho:0,privatePrice:0,normalPrice:0,breakdownText:'0'};
+      if(target>50000)target=50000;const products=[...storeProducts].sort((a,b)=>b.totalEcho-a.totalEcho);
+      const MAX_VAL=target+Math.max(...products.map(p=>p.totalEcho));
+      const dp=new Array(MAX_VAL+1).fill(Infinity);const parent=new Array(MAX_VAL+1).fill(null);const choice=new Array(MAX_VAL+1).fill(null);
+      dp[0]=0;
+      for(let i=0;i<=MAX_VAL;i++){
+        if(dp[i]===Infinity)continue;
+        for(const p of products){
+          let nxt=i+p.totalEcho;
+          if(nxt<=MAX_VAL){
+             let cost=dp[i]+p.privatePrice;
+             if(cost<dp[nxt] || (cost===dp[nxt] && dp[nxt]!==Infinity && choice[nxt] && p.totalEcho > choice[nxt].totalEcho)){
+               dp[nxt]=cost;parent[nxt]=i;choice[nxt]=p;
+             }
+          }
+        }
+      }
+      let minPrice=Infinity;let bestTotalEcho=-1;
+      for(let i=target;i<=MAX_VAL;i++){
+        if(dp[i]<minPrice){minPrice=dp[i];bestTotalEcho=i;}
+        else if(dp[i]===minPrice&&i>bestTotalEcho){bestTotalEcho=i;}
+      }
+      let curr=bestTotalEcho;
+      while(curr>0&&parent[curr]!==null){
+        const p=choice[curr];if(!packsMap[p.id])packsMap[p.id]={pid:p.id,qty:0,totalEcho:p.totalEcho,echoes:p.echoes,pvP:p.privatePrice,nmP:p.normalPrice};
+        packsMap[p.id].qty++;totalEcho+=p.totalEcho;topupEcho+=p.echoes;pvP+=p.privatePrice;nmP+=p.normalPrice;curr=parent[curr];
+      }
     }
-    if(remaining>0&&products.length>0){const sm=products[products.length-1];const ex=packs.find(x=>x.pid===sm.id);if(ex)ex.qty++;else packs.push({pid:sm.id,qty:1,totalEcho:sm.totalEcho,echoes:sm.echoes});totalEcho+=sm.totalEcho;topupEcho+=sm.echoes;pvP+=sm.privatePrice;nmP+=sm.normalPrice;}
+    const packs=Object.values(packsMap).sort((a,b)=>b.totalEcho-a.totalEcho);
     const breakdownText=packs.map(p=>p.qty>1?`${p.totalEcho}×${p.qty}`:`${p.totalEcho}`).join('+');
     return{packs,totalEcho,topupEcho,privatePrice:pvP,normalPrice:nmP,breakdownText};
   },
@@ -190,7 +221,7 @@ const App = {
 
   // matchField: 'totalEcho' or 'echoes'
   _calcOptimalPacks(echoNeed,budgetMax,matchField='totalEcho'){
-    const products=Store.getProducts().sort((a,b)=>b[matchField]-a[matchField]);
+    const products=[...Store.getProducts()].sort((a,b)=>b[matchField]-a[matchField]);
     let remaining=echoNeed||999999;let budget=budgetMax||999999;
     let packs=[],totalPrice=0,totalEcho=0,topupEcho=0;
     for(const p of products){
@@ -646,7 +677,7 @@ const App = {
       <div class="note-box info">ใส่จำนวนกระดุมที่ต้องใช้ ระบบจะคำนวณแพ็ค/ราคาให้อัตโนมัติ! หรือตั้งราคาเองได้</div>
       ${skins.map((s,i)=>{const calc=this._autoCalcSkinPack(s.targetEcho||0);
         return`<div style="padding:12px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong>${s.emoji} ${s.name}</strong><div style="display:flex;gap:4px;align-items:center;"><button class="btn-copy" onclick="App._moveSkin(${i},-1)" ${i===0?'disabled style="opacity:0.3;"':''}>⬆️</button><button class="btn-copy" onclick="App._moveSkin(${i},1)" ${i===skins.length-1?'disabled style="opacity:0.3;"':''}>⬇️</button><span class="badge ${s.topupOnly?'badge-yellow':'badge-blue'}">${s.topupOnly?'เติมเท่านั้น':'เติม+ส่ง'}</span><span class="badge ${s.active?'badge-green':'badge-red'}">${s.active?'เปิด':'ปิด'}</span><button class="btn-copy" onclick="App._toggleSkinTopup(${i})">${s.topupOnly?'🎁':'💎'}</button><button class="btn-copy" onclick="App._toggleSkin(${i})">${s.active?'🔴':'🟢'}</button><button class="btn-copy" onclick="App._deleteSkin(${i})">🗑️</button></div></div>
-        <div class="grid-3" style="gap:8px;"><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ชื่อ</label><input class="form-input" id="sN${i}" value="${s.name}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">กระดุมที่ต้องใช้</label><input class="form-input" type="number" id="sTE${i}" value="${s.targetEcho}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ราคาส่ง (กำหนดเอง)</label><input class="form-input" type="number" id="sSP${i}" value="${s.sendPrice||''}" style="padding:8px;"></div></div>
+        <div class="grid-3" style="gap:8px;"><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ชื่อ</label><input class="form-input" id="sN${i}" value="${s.name}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">กระดุมที่ต้องใช้</label><input class="form-input" type="text" id="sTE${i}" value="${typeof s.targetEcho==='number'?s.targetEcho:(s.targetEcho||'')}" style="padding:8px;" placeholder="ต.ย. 726 หรือ 759+66"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ราคาส่ง (กำหนดเอง)</label><input class="form-input" type="number" id="sSP${i}" value="${s.sendPrice||''}" style="padding:8px;"></div></div>
         <div style="margin-top:8px;background:var(--bg-primary);padding:10px;border-radius:8px;font-size:0.8rem;">
           <div>📦 สรุป: ${calc.breakdownText} = <strong>${calc.totalEcho}</strong> กระดุม</div>
           <div>📋 ยอดเติม: ${calc.topupEcho} กระดุม | 💰 พรีไว(อัตโนมัติ): <strong>฿${calc.privatePrice}</strong> | ปกติ(อัตโนมัติ): ฿${calc.normalPrice}</div>
@@ -680,7 +711,7 @@ const App = {
   _moveRental(idx,dir){const r=Store.getRentals();const ni=idx+dir;if(ni<0||ni>=r.length)return;[r[idx],r[ni]]=[r[ni],r[idx]];Store.setRentals(r);this.renderAdmin();},
   _moveFAQ(idx,dir){const f=Store.getFAQ();const ni=idx+dir;if(ni<0||ni>=f.length)return;[f[idx],f[ni]]=[f[ni],f[idx]];Store.setFAQ(f);this.renderAdmin();},
   _movePromo(idx,dir){const p=Store.getPromos();const ni=idx+dir;if(ni<0||ni>=p.length)return;[p[idx],p[ni]]=[p[ni],p[idx]];Store.setPromos(p);this.renderAdmin();},
-  _saveSkins(){const skins=Store.getSkinPacks();skins.forEach((s,i)=>{s.name=document.getElementById(`sN${i}`)?.value||s.name;s.targetEcho=parseInt(document.getElementById(`sTE${i}`)?.value)||s.targetEcho;s.sendPrice=parseInt(document.getElementById(`sSP${i}`)?.value)||null;s.normalEnabled=document.getElementById(`sNE${i}`)?.checked||false;const hasCNP=document.getElementById(`sCNP${i}`)?.checked;s.customNormalPrice=hasCNP?parseInt(document.getElementById(`sNP${i}`)?.value)||null:null;const hasCPP=document.getElementById(`sCPP${i}`)?.checked;s.customPrivatePrice=hasCPP?parseInt(document.getElementById(`sPP${i}`)?.value)||null:null;if(this._uploadedImages[`skin${i}`])s.image=this._uploadedImages[`skin${i}`];});Store.setSkinPacks(skins);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
+  _saveSkins(){const skins=Store.getSkinPacks();skins.forEach((s,i)=>{s.name=document.getElementById(`sN${i}`)?.value||s.name;s.targetEcho=document.getElementById(`sTE${i}`)?.value||s.targetEcho;s.sendPrice=parseInt(document.getElementById(`sSP${i}`)?.value)||null;s.normalEnabled=document.getElementById(`sNE${i}`)?.checked||false;const hasCNP=document.getElementById(`sCNP${i}`)?.checked;s.customNormalPrice=hasCNP?parseInt(document.getElementById(`sNP${i}`)?.value)||null:null;const hasCPP=document.getElementById(`sCPP${i}`)?.checked;s.customPrivatePrice=hasCPP?parseInt(document.getElementById(`sPP${i}`)?.value)||null:null;if(this._uploadedImages[`skin${i}`])s.image=this._uploadedImages[`skin${i}`];});Store.setSkinPacks(skins);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
   _addSkinPack(){const skins=Store.getSkinPacks();skins.push({id:Date.now(),name:'แพ็คใหม่',targetEcho:0,sendPrice:0,normalEnabled:false,cost:0,image:'',emoji:'🎁',active:true,customNormalPrice:null,customPrivatePrice:null,topupOnly:false});Store.setSkinPacks(skins);this.showToast('✅ เพิ่มแพ็คสกิน!');this.renderAdmin();},
 
   _adminQueue(ac){const o=Store.getOrders();const topup=o.filter(x=>x.type==='topup');const send=o.filter(x=>x.type==='send');const bookings=Store.getBookings();const rentals=Store.getRentals();
