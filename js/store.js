@@ -123,14 +123,24 @@ const Store = {
   },
 
   _setupListeners(){
-    const listenPaths = [
-      'shop_status','marquee','banner','mascot','chatbot_img',
-      'products','skin_packs','buttons','promos','faq','rentals',
-      'bank','chatbot','banner_size','mascot_size','chatbot_size','chatbot_bottom',
-      'order_banner','gift_banner','order_banner_size','gift_banner_size',
-      'loading_img','loading_img_size','orders','bookings'
-    ];
-    listenPaths.forEach(p => this._listen(p));
+    // Simple listeners (just cache update)
+    const simplePaths = ['products','skin_packs','buttons','promos','faq','rentals',
+      'bank','chatbot','orders','bookings','admin_user','admin_pass',
+      'order_banner_size','gift_banner_size','loading_img_size',
+      'banner_size','chatbot_bottom'];
+    simplePaths.forEach(p => this._listen(p));
+
+    // Listeners with UI refresh callbacks
+    this._listen('shop_status', () => { if(typeof App !== 'undefined') App.updateShopStatus(); });
+    this._listen('marquee', () => { if(typeof App !== 'undefined') App.updateMarquee(); });
+    this._listen('banner', () => { if(typeof App !== 'undefined' && App.currentPage === 'home') App.navigate('home'); });
+    this._listen('mascot', () => { if(typeof App !== 'undefined') App.updateMascot(); });
+    this._listen('mascot_size', () => { if(typeof App !== 'undefined') App.applyMascotSize(); });
+    this._listen('chatbot_img', () => { if(typeof App !== 'undefined') App.updateChatbotImg(); });
+    this._listen('chatbot_size', () => { if(typeof App !== 'undefined') App.applyChatbotSize(); });
+    this._listen('loading_img', () => { if(typeof App !== 'undefined') App.applyLoadingImg(); });
+    this._listen('order_banner', () => { if(typeof App !== 'undefined' && App.currentPage === 'order') App.navigate('order'); });
+    this._listen('gift_banner', () => { if(typeof App !== 'undefined' && App.currentPage === 'gift') App.navigate('gift'); });
   },
 
   onReady(cb){
