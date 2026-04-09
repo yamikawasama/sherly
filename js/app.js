@@ -8,7 +8,9 @@ const App = {
   _selectedRentalId:null, _selectedDate:null, _selectedSlots:[], _selectedPayMethod:0,
   _mobilePreview:false,
 
-  init() {
+  async init() {
+    // Wait for Firebase data to load
+    await Store.init();
     document.documentElement.setAttribute('data-theme',Store.getTheme());
     this.applyLoadingImg();
     this.setupLoading(); this.updateMarquee(); this.updateShopStatus(); this.updateMascot(); this.updateChatbotImg(); this.applyChatbotSize(); this.applyMascotSize(); this.applyChatbotBottom();
