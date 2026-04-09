@@ -326,13 +326,25 @@ const App = {
   submitOrderWithSlip(orderType){
     const gameName=document.getElementById('payGameName')?.value;const uid=document.getElementById('payUID')?.value;const server=document.getElementById('payServer')?.value;
     if(!gameName||!uid){this.showToast('กรอกข้อมูลให้ครบค่ะ','warning');return;}if(!this._slipDataUrl){this.showToast('กรุณาอัปโหลดสลิปค่ะ','warning');return;}
-    const user=Store.getCurrentUser();let d10=parseInt(document.getElementById('disc10Count')?.value)||0;let d3=parseInt(document.getElementById('disc3Count')?.value)||0;
-    const sorted=[...this.cart].map(c=>{let items=[];for(let i=0;i<c.qty;i++)items.push({...c,qty:1});return items;}).flat().sort((a,b)=>b.price-a.price);
-    let totalPrice=0;sorted.forEach(item=>{let fp=item.price;if(d10>0){fp-=Math.round(fp*0.1);d10--;}else if(d3>0){fp-=Math.round(fp*0.03);d3--;}totalPrice+=fp;});
-    const totalEcho=this.cart.reduce((s,c)=>s+c.totalEcho*c.qty,0);const topupEcho=this.cart.reduce((s,c)=>s+c.echoes*c.qty,0);
-    const order=Store.addOrder({type:orderType,userId:user?.id,gameName,uid,server,items:this.cart.map(c=>({name:c.name,type:c.type,totalEcho:c.totalEcho,echoes:c.echoes,price:c.price,qty:c.qty,isSkin:c.isSkin})),totalEcho,topupEcho,totalPrice,totalCost:this.cart.reduce((s,c)=>s+(c.cost||0)*c.qty,0),slipImage:this._slipDataUrl,slipVerified:this._slipVerified});
-    this.cart=[];this._slipDataUrl=null;this._slipVerified=false;this.updateCartBadge();this.hideGenericModal();
-    this.showToast('✅ สั่งซื้อสำเร็จ! รอแอดมินตรวจสอบค่ะ♡','success');this.showReceipt(order);
+    const user=Store.getCurrentUser();
+    if(orderType==='rental'){
+      const pending=this._pendingRental;if(!pending)return;
+      const order=Store.addOrder({type:'rental',userId:user?.id,gameName,uid,server,items:[{name:pending.name,price:pending.price,qty:pending.qty,isSkin:false}],totalEcho:0,topupEcho:0,totalPrice:pending.price*pending.qty,totalCost:0,slipImage:this._slipDataUrl,slipVerified:this._slipVerified});
+      Store.addBooking({orderId:order.id,rentalId:pending.rentalId,userId:user.id,userName:gameName||user.gameName,date:pending.date,startHour:pending.startHour,endHour:pending.endHour,totalHours:pending.qty,totalPrice:pending.price*pending.qty,slipImage:this._slipDataUrl,status:'booked'});
+      this._pendingRental=null;this._selectedSlots=[];
+    }else{
+      let d10=parseInt(document.getElementById('disc10Count')?.value)||0;let d3=parseInt(document.getElementById('disc3Count')?.value)||0;
+      const sorted=[...this.cart].map(c=>{let items=[];for(let i=0;i<c.qty;i++)items.push({...c,qty:1});return items;}).flat().sort((a,b)=>b.price-a.price);
+      let totalPrice=0;sorted.forEach(item=>{let fp=item.price;if(d10>0){fp-=Math.round(fp*0.1);d10--;}else if(d3>0){fp-=Math.round(fp*0.03);d3--;}totalPrice+=fp;});
+      const totalEcho=this.cart.reduce((s,c)=>s+c.totalEcho*c.qty,0);const topupEcho=this.cart.reduce((s,c)=>s+c.echoes*c.qty,0);
+      Store.addOrder({type:orderType,userId:user?.id,gameName,uid,server,items:this.cart.map(c=>({name:c.name,type:c.type,totalEcho:c.totalEcho,echoes:c.echoes,price:c.price,qty:c.qty,isSkin:c.isSkin})),totalEcho,topupEcho,totalPrice,totalCost:this.cart.reduce((s,c)=>s+(c.cost||0)*c.qty,0),slipImage:this._slipDataUrl,slipVerified:this._slipVerified});
+      this.cart=[];this.updateCartBadge();
+    }
+    this._slipDataUrl=null;this._slipVerified=false;this.hideGenericModal();
+    this.showToast('✅ สั่งซื้อสำเร็จ! รอแอดมินตรวจสอบค่ะ♡','success');
+    // For receipt we get last order
+    const o=Store.getOrders();
+    this.showReceipt(o[o.length-1]);
   },
 
   showReceipt(order){const c=document.getElementById(`page-${this.currentPage}`);const now=new Date();const rNote=Store.getReceiptNote(order.type||'topup');c.innerHTML=`<div class="page-header animate-fade-in-up"><h1 class="page-title">🧾 ใบเสร็จ${order.type==='topup'?' (เติม)':order.type==='send'?' (ส่ง)':order.type==='rental'?' (เช่า)':''}</h1></div><div class="animate-bounce-in"><div class="receipt"><div class="receipt-header"><div style="font-size:2rem;">🐰</div><h2 style="font-size:1.2rem;margin:4px 0;">Sherly Panty</h2><div style="margin-top:8px;font-size:0.75rem;color:#aaa;">เลขที่: #${String(order.id).slice(-6)} | คิว${order.type==='topup'?'เติม':order.type==='send'?'ส่ง':'เช่า'}: ${order.queueNumber}</div></div><div style="margin:12px 0;"><div class="receipt-row"><span style="color:#999;">วันที่:</span><span>${now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</span></div><div class="receipt-row"><span style="color:#999;">ลูกค้า:</span><span>${order.gameName}</span></div><div class="receipt-row"><span style="color:#999;">UID:</span><span>${order.uid}</span></div></div><div style="border-top:2px dashed #ddd;padding-top:12px;">${(order.items||[]).map(i=>`<div class="receipt-row"><span>${i.isSkin?'✨':'💎'} ${i.name} x${i.qty||1}</span><span>฿${((i.price||0)*(i.qty||1)).toLocaleString()}</span></div>`).join('')}</div><div class="receipt-total"><div class="receipt-row"><span style="font-size:1.1rem;">💰 ยอดรวม</span><span style="color:#F2A7B3;font-size:1.3rem;">฿${(order.totalPrice||0).toLocaleString()}</span></div></div><div class="receipt-footer"><p>สถานะ: ⏳ รอ</p><p style="margin-top:4px;">${rNote}</p></div></div></div><div style="display:flex;gap:12px;justify-content:center;margin-top:24px;"><a href="https://www.facebook.com/share/16RiyzPHqX/" target="_blank" class="btn btn-primary btn-lg">📞 ติดต่อแอดมิน</a><button class="btn btn-secondary btn-lg" onclick="App.navigate('home')">🏠 กลับ</button></div>`;},
@@ -388,40 +400,10 @@ const App = {
     </div>`;
   },
   toggleSlot(hour){const idx=this._selectedSlots.indexOf(hour);if(idx>=0)this._selectedSlots.splice(idx,1);else this._selectedSlots.push(hour);this._selectedSlots.sort((a,b)=>a-b);this.renderRental();},
-  bookRental(){
-    if(!Store.getCurrentUser()){this.showAuthModal('login');return;}
-    const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);
-    if(!rental||this._selectedSlots.length===0)return;
-    const user=Store.getCurrentUser();
-    const totalPrice=this._selectedSlots.length*rental.pricePerHour;
-    const bank=Store.getBank();const methods=bank.methods?bank.methods.filter(m=>m.active):[{name:'PromptPay',accountName:'ตัวอย่าง',accountNumber:'XXX',noteText:'เช่าไอดี',icon:'💳'}];
-    this._selectedPayMethod=0;this._slipDataUrl=null;this._slipVerified=false;
-    const modal=document.getElementById('genericModalContent');
-    modal.innerHTML=`<button class="modal-close" onclick="App.hideGenericModal()">✕</button>
-      <h2 class="modal-title">🎮 ชำระค่าเช่าไอดี</h2>
-      <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);"><div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><strong>${rental.emoji} ${rental.name}</strong><div style="font-size:0.85rem;color:var(--text-secondary);">${this._selectedDate} | ${Math.min(...this._selectedSlots)}:00-${Math.max(...this._selectedSlots)+1}:00 (${this._selectedSlots.length} ชม.)</div></div>
-        <div style="font-weight:700;color:var(--primary);font-size:1.2rem;">฿${totalPrice.toLocaleString()}</div>
-      </div></div>
-      <label class="form-label">📱 ช่องทางชำระเงิน</label>
-      <div class="pay-method">${methods.map((m,i)=>`<div class="pay-method-btn ${i===0?'selected':''}" onclick="App._selectPayMethod(${i})"><div class="pm-icon">${m.icon||'💳'}</div><div class="pm-name">${m.name}</div></div>`).join('')}</div>
-      <div id="payMethodInfo"></div>
-      <div class="form-group"><label class="form-label">📸 อัปโหลดสลิป</label>
-        <div class="slip-upload" onclick="document.getElementById('slipFile').click()"><div style="font-size:2rem;margin-bottom:8px;">📄</div><p style="color:var(--text-secondary);font-size:0.85rem;">คลิกเพื่อเลือกรูปสลิป</p><input type="file" id="slipFile" accept="image/*" style="display:none;" onchange="App.handleSlipUpload(event)"></div>
-        <div id="slipPreviewArea"></div></div>
-      <button class="btn btn-primary btn-lg" style="width:100%;" onclick="App._submitRentalWithSlip()">✅ ยืนยันและจองเลย</button>`;
-    this._renderPayMethodInfo(methods,0);document.getElementById('genericModal').classList.add('active');
-  },
-  _submitRentalWithSlip(){
-    if(!this._slipDataUrl){this.showToast('กรุณาอัปโหลดสลิปค่ะ','warning');return;}
-    const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);if(!rental)return;
-    const user=Store.getCurrentUser();
-    const totalPrice=this._selectedSlots.length*rental.pricePerHour;
-    const booking=Store.addBooking({rentalId:rental.id,userId:user.id,userName:user.gameName||user.username,contact:user.contact||'',date:this._selectedDate,startHour:Math.min(...this._selectedSlots),endHour:Math.max(...this._selectedSlots)+1,totalHours:this._selectedSlots.length,totalPrice,status:'booked',slipImage:this._slipDataUrl,slipVerified:this._slipVerified});
-    this._selectedSlots=[];this._slipDataUrl=null;this._slipVerified=false;
-    this.hideGenericModal();this.showToast('✅ จองสำเร็จ! รอแอดมินตรวจสอบค่ะ♡','success');
-    const receiptOrder={id:booking.id,queueNumber:Store.getBookings().filter(b=>b.rentalId===rental.id).length,type:'rental',gameName:user.gameName||user.username,uid:user.uid||'-',items:[{name:`${rental.emoji} ${rental.name} (${this._selectedDate})`,price:totalPrice,qty:1,isSkin:false}],totalPrice,slipImage:this._slipDataUrl};
-    this.showReceipt(receiptOrder);
+  bookRental(){if(!Store.getCurrentUser()){this.showAuthModal('login');return;}const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);if(!rental||this._selectedSlots.length===0)return;
+    const start=Math.min(...this._selectedSlots);const end=Math.max(...this._selectedSlots)+1;const qty=this._selectedSlots.length;const price=rental.pricePerHour;
+    this._pendingRental={rentalId:rental.id,name:`เช่าไอดี ${rental.name} (${start}:00-${end}:00)`,date:this._selectedDate,startHour:start,endHour:end,qty,price};
+    this._showPaymentModal('rental');
   },
 
   // ========== MY ORDERS (Customer) ==========
@@ -705,7 +687,7 @@ const App = {
   ac.innerHTML=`<div class="card" style="margin-bottom:20px;"><h3 style="margin-bottom:16px;">📋 คิวเติม (${topup.length})</h3>${this._renderQueueTable(topup)}</div>
     <div class="card" style="margin-bottom:20px;"><h3 style="margin-bottom:16px;">🎁 คิวส่ง (${send.length})</h3>${this._renderQueueTable(send)}</div>
     <div class="card"><h3 style="margin-bottom:16px;">🎮 คิวเช่า (${bookings.length})</h3>
-    ${bookings.length>0?`<div class="table-container"><table class="table"><thead><tr><th>ไอดี</th><th>ผู้เช่า</th><th>วัน</th><th>เวลา</th><th>ราคา</th><th>สถานะ</th><th></th></tr></thead><tbody>${bookings.slice().reverse().map(b=>{const r=rentals.find(x=>x.id===b.rentalId);return`<tr><td>${r?.name||'-'}</td><td>${b.userName}</td><td>${b.date}</td><td>${b.startHour}:00-${b.endHour}:00</td><td style="font-weight:600;color:var(--primary);">฿${b.totalPrice}</td><td><span class="status-badge status-${b.status==='done'?'done':b.status==='playing'?'processing':'waiting'}">${b.status==='booked'?'⏳ รอ':b.status==='playing'?'🎮 เล่นอยู่':b.status==='done'?'✅ เสร็จ':'❌ ยกเลิก'}</span></td><td><div style="display:flex;gap:4px;align-items:center;"><select class="form-select" style="padding:6px;font-size:0.8rem;width:auto;" onchange="App._updateBookingStatus(${b.id},this.value)"><option value="booked" ${b.status==='booked'?'selected':''}>⏳ รอ</option><option value="playing" ${b.status==='playing'?'selected':''}>🎮 เล่น</option><option value="done" ${b.status==='done'?'selected':''}>✅ เสร็จ</option><option value="cancelled" ${b.status==='cancelled'?'selected':''}>❌ ยกเลิก</option></select><button class="btn-copy" style="color:#e53e3e;" onclick="App._deleteBooking(${b.id})" title="ลบ">🗑️</button></div></td></tr>`;}).join('')}</tbody></table></div>`:'<p style="color:var(--text-light);">ไม่มีคิวเช่า</p>'}</div>`;},
+    ${bookings.length>0?`<div class="table-container"><table class="table"><thead><tr><th>ไอดี</th><th>ผู้เช่า</th><th>วัน</th><th>เวลา</th><th>ราคา</th><th>สลิป</th><th>สถานะ</th><th></th></tr></thead><tbody>${bookings.slice().reverse().map(b=>{const r=rentals.find(x=>x.id===b.rentalId);return`<tr><td>${r?.name||'-'}</td><td>${b.userName}</td><td>${b.date}</td><td>${b.startHour}:00-${b.endHour}:00</td><td style="font-weight:600;color:var(--primary);">฿${b.totalPrice}</td><td>${b.slipImage?`<img src="${b.slipImage}" style="width:40px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="App.openLightbox('${b.slipImage}')">`:'-'}</td><td><span class="status-badge status-${b.status==='done'?'done':b.status==='playing'?'processing':'waiting'}">${b.status==='booked'?'⏳ รอ':b.status==='playing'?'🎮 เล่นอยู่':b.status==='done'?'✅ เสร็จ':'❌ ยกเลิก'}</span></td><td><div style="display:flex;gap:4px;align-items:center;"><select class="form-select" style="padding:6px;font-size:0.8rem;width:auto;" onchange="App._updateBookingStatus(${b.id},this.value)"><option value="booked" ${b.status==='booked'?'selected':''}>⏳ รอ</option><option value="playing" ${b.status==='playing'?'selected':''}>🎮 เล่น</option><option value="done" ${b.status==='done'?'selected':''}>✅ เสร็จ</option><option value="cancelled" ${b.status==='cancelled'?'selected':''}>❌ ยกเลิก</option></select><button class="btn-copy" style="color:#e53e3e;" onclick="App._deleteBooking(${b.id})" title="ลบ">🗑️</button></div></td></tr>`;}).join('')}</tbody></table></div>`:'<p style="color:var(--text-light);">ไม่มีคิวเช่า</p>'}</div>`;},
   _renderQueueTable(orders){if(orders.length===0)return'<p style="color:var(--text-light);">ไม่มีคิว</p>';return`<div class="table-container"><table class="table"><thead><tr><th>คิว</th><th>ลูกค้า</th><th>รายการ</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th><th></th></tr></thead><tbody>${orders.slice().reverse().map(o=>`<tr><td><strong>#${o.queueNumber}</strong></td><td>${o.gameName}<br><span style="font-size:0.7rem;color:var(--text-light);">UID:${o.uid}</span></td><td>${(o.items||[]).map(i=>`${i.isSkin?'✨':'💎'}${i.name}`).join('<br>')}</td><td style="font-weight:600;color:var(--primary);">฿${(o.totalPrice||0).toLocaleString()}</td><td>${o.slipImage?`<img src="${o.slipImage}" style="width:40px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="App.openLightbox('${o.slipImage}')">`:'-'}</td><td><span class="status-badge status-${o.status}">${o.status==='waiting'?'⏳ รอ':o.status==='processing'?'🔄 ทำ':'✅ เสร็จ'}</span>${o.adminNote?`<div style="font-size:0.65rem;color:var(--secondary);margin-top:2px;">📝 ${o.adminNote.substring(0,15)}</div>`:''}</td><td><div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;"><select class="form-select" style="padding:6px;font-size:0.8rem;width:auto;" onchange="App._updateOrderStatus(${o.id},this.value)"><option value="waiting" ${o.status==='waiting'?'selected':''}>⏳ รอ</option><option value="processing" ${o.status==='processing'?'selected':''}>🔄 ทำ</option><option value="done" ${o.status==='done'?'selected':''}>✅ เสร็จ</option></select><button class="btn-copy" title="แนบภาพ/โน้ต" onclick="event.stopPropagation();App._showAttachModal(${o.id})">📎</button><button class="btn-copy" style="color:#e53e3e;" onclick="event.stopPropagation();App._deleteOrder(${o.id})" title="ลบออเดอร์">🗑️</button></div></td></tr>`).join('')}</tbody></table></div>`;},
   _updateOrderStatus(id,status){Store.updateOrder(id,{status});this.showToast('✅ อัปเดต!');this.renderAdmin();},
   _deleteOrder(id){if(!confirm('⚠️ ต้องการลบออเดอร์นี้จริงหรือไม่?\n\nข้อมูลจะถูกลบออกถาวร ไม่สามารถกู้คืนได้!')){return;}const orders=Store.getOrders();const filtered=orders.filter(o=>o.id!==id);Store.setOrders(filtered);this.showToast('🗑️ ลบออเดอร์แล้ว!');this.renderAdmin();},
@@ -761,8 +743,19 @@ const App = {
         <td><div style="display:flex;gap:4px;align-items:center;"><select class="form-select" style="padding:6px;font-size:0.8rem;width:auto;" onchange="App._updateBookingStatus(${b.id},this.value)"><option value="booked" ${b.status==='booked'?'selected':''}>⏳ รอ</option><option value="playing" ${b.status==='playing'?'selected':''}>🎮 เล่นอยู่</option><option value="done" ${b.status==='done'?'selected':''}>✅ เสร็จ</option><option value="cancelled" ${b.status==='cancelled'?'selected':''}>❌ ยกเลิก</option></select><button class="btn-copy" style="color:#e53e3e;" onclick="App._deleteBooking(${b.id})" title="ลบ">🗑️</button></div></td>
       </tr>`;}).join('')}</tbody></table></div>`:'<p style="color:var(--text-light);">ไม่มีการจอง</p>'}</div>`;
   },
-  _updateBookingStatus(id,status){Store.updateBooking(id,{status});this.showToast('✅ อัปเดตสถานะ!');this.renderAdmin();},
-  _deleteBooking(id){if(!confirm('⚠️ ต้องการลบรายการเช่านี้?')){return;}const bookings=Store.getBookings().filter(b=>b.id!==id);Store._fbSet('bookings',bookings);this.showToast('🗑️ ลบรายการเช่าแล้ว!');this.renderAdmin();},
+  _updateBookingStatus(id,status){
+    Store.updateBooking(id,{status});
+    const b=Store.getBookings().find(x=>x.id===id);
+    if(b&&b.orderId){const oStatus=status==='booked'?'waiting':status==='playing'?'processing':'done';Store.updateOrder(b.orderId,{status:oStatus});}
+    this.showToast('✅ อัปเดตสถานะ!');this.renderAdmin();
+  },
+  _deleteBooking(id){
+    if(!confirm('⚠️ ต้องการลบรายการเช่านี้?')){return;}
+    const b=Store.getBookings().find(x=>x.id===id);
+    if(b&&b.orderId){const orders=Store.getOrders().filter(o=>o.id!==b.orderId);Store.setOrders(orders);}
+    const bookings=Store.getBookings().filter(x=>x.id!==id);Store._fbSet('bookings',bookings);
+    this.showToast('🗑️ ลบรายการเช่าแล้ว!');this.renderAdmin();
+  },
   _saveRentals(){const rentals=Store.getRentals();rentals.forEach((r,i)=>{r.name=document.getElementById(`rN${i}`)?.value||r.name;r.pricePerHour=parseInt(document.getElementById(`rP${i}`)?.value)||r.pricePerHour;r.emoji=document.getElementById(`rE${i}`)?.value||r.emoji;r.description=document.getElementById(`rD${i}`)?.value||r.description;r.rentalStatus=document.getElementById(`rStatus${i}`)?.value||'available';if(this._uploadedImages[`rental${i}`])r.image=this._uploadedImages[`rental${i}`];});Store.setRentals(rentals);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
   _addRental(){const r=Store.getRentals();r.push({id:Date.now(),name:`ไอดีที่ ${r.length+1}`,pricePerHour:20,emoji:'🎭',skins:['🎭'],image:'',description:'ไอดีใหม่',active:true,rentalStatus:'available'});Store.setRentals(r);this.showToast('✅ เพิ่มไอดี!');this.renderAdmin();},
   _deleteRental(i){if(!confirm('ลบไอดีนี้?'))return;const r=Store.getRentals();r.splice(i,1);Store.setRentals(r);this.renderAdmin();},
