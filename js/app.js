@@ -6,7 +6,7 @@ const App = {
   _uploadedImages:{}, _slipDataUrl:null, _slipVerified:false,
   _calcMode:'budget', _lastCalcCombo:null, _faqId:null, _promoId:null,
   _selectedRentalId:null, _selectedDate:null, _selectedSlots:[], _selectedPayMethod:0,
-  _mobilePreview:false,
+  _mobilePreview:false, _guideShown:{},  // track dismissed guides per session
 
   async init() {
     this.setupLoading(); // Start loading timer immediately
@@ -43,8 +43,37 @@ const App = {
     document.querySelectorAll('.page-view').forEach(p=>p.classList.remove('active'));
     const pe=document.getElementById(`page-${page}`);if(pe){pe.classList.add('active');this.renderPage(page);}
     document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('.sidebar-overlay')?.classList.remove('active');
+    // Show guide popup for order/gift/rental (once per session)
+    if(['order','gift','rental'].includes(page)&&!this._guideShown[page]&&!this.adminLoggedIn){
+      const guide=Store.getGuide(page);if(guide&&guide.active&&(guide.title||guide.content)){this._showGuidePopup(page,guide);}
+    }
   },
   renderPage(page){const fn={home:'renderHome',order:'renderOrder',gift:'renderGift',rental:'renderRental',admin:'renderAdmin',myorders:'renderMyOrders',faqdetail:'renderFAQDetail',promodetail:'renderPromoDetail'};if(fn[page])this[fn[page]]();},
+
+  // ========== GUIDE POPUP ==========
+  _showGuidePopup(page,guide){
+    const overlay=document.getElementById('guideOverlay');
+    const body=document.getElementById('guidePopupBody');
+    if(!overlay||!body)return;
+    const contentLines=(guide.content||'').split('\n').map(line=>`<p>${line}</p>`).join('');
+    const imagesHtml=(guide.images&&guide.images.length>0)?`<div class="guide-popup-images">${guide.images.map(img=>`<img src="${img}" alt="" onclick="App.openLightbox('${img}')">`).join('')}</div>`:'';
+    body.innerHTML=`<div class="guide-popup-title">${guide.title||''}</div>
+      <div class="guide-popup-content">${contentLines}</div>
+      ${imagesHtml}
+      <hr class="guide-popup-divider">
+      <div class="guide-popup-close-area">
+        <button class="guide-popup-close" onclick="App._closeGuidePopup('${page}')">${guide.closeEmoji||'❌'}</button>
+      </div>`;
+    overlay.classList.add('active');
+    // Scroll to top
+    const scrollArea=document.getElementById('guideScrollArea');
+    if(scrollArea)scrollArea.scrollTop=0;
+  },
+  _closeGuidePopup(page){
+    this._guideShown[page]=true;
+    const overlay=document.getElementById('guideOverlay');
+    if(overlay)overlay.classList.remove('active');
+  },
 
   // ========== HOME ==========
   renderHome(){
@@ -133,7 +162,14 @@ const App = {
       ${skins.length>0?`<h3 style="margin:24px 0 12px;" class="animate-fade-in-up">✨ แนะนำ</h3>
       <div class="grid-2 animate-fade-in-up">${skins.map(s=>{
         const calc=this._autoCalcSkinPack(s.targetEcho);
-        const pvPrice=s.customPrivatePrice?s.customPrivatePrice:calc.privatePrice;
+        let pvPrice=calc.privatePrice;
+        // If admin set custom formula, calculate price from that formula
+        if(s.customPrivateFormula){
+          const parsed=this._parseFormula(s.customPrivateFormula);
+          if(parsed&&parsed.packs.length>0) pvPrice=parsed.totalPrice;
+        } else if(s.customPrivatePrice){
+          pvPrice=s.customPrivatePrice;
+        }
         const nmPrice=s.customNormalPrice?s.customNormalPrice:calc.normalPrice;
         return`<div class="card" style="text-align:center;">
           <div style="font-size:2.5rem;margin-bottom:8px;">${s.image?`<img src="${s.image}" style="width:80px;height:80px;border-radius:12px;margin:0 auto;object-fit:cover;">`:s.emoji}</div>
@@ -275,7 +311,7 @@ const App = {
 
   addSkinPack(skinId,type){
     const s=Store.getSkinPacks().find(x=>x.id===skinId);if(!s)return;
-    // If admin set a custom formula for private price, use that
+    // If admin set a custom formula for private price, use that formula's packs
     let calcPacks;
     if(type==='private'&&s.customPrivateFormula){
       const parsed=this._parseFormula(s.customPrivateFormula);
@@ -283,24 +319,24 @@ const App = {
     }
     if(!calcPacks){const calc=this._autoCalcSkinPack(s.targetEcho);calcPacks=calc.packs;}
     const products=Store.getProducts();
+    // Add each pack unit individually so cart shows separate items (like screenshot)
     calcPacks.forEach(pack=>{
       const product=products.find(p=>p.id===pack.pid);
       if(!product)return;
-      const key=`${product.id}-${type}`;
-      const existing=this.cart.find(c=>c.key===key);
       let price=type==='private'?product.privatePrice:product.normalPrice;
-      if(existing){
-        existing.qty+=pack.qty;
-        if(product.volumeDiscount&&type==='private'){
-          const vd=product.volumeDiscount.slice().sort((a,b)=>b.minQty-a.minQty).find(v=>existing.qty>=v.minQty);
-          if(vd)existing.price=vd.price;
+      // Add each unit of this pack as separate cart entries
+      for(let i=0;i<pack.qty;i++){
+        const key=`${product.id}-${type}`;
+        const existing=this.cart.find(c=>c.key===key);
+        if(existing){
+          existing.qty+=1;
+          if(product.volumeDiscount&&type==='private'){
+            const vd=product.volumeDiscount.slice().sort((a,b)=>b.minQty-a.minQty).find(v=>existing.qty>=v.minQty);
+            if(vd)existing.price=vd.price;
+          }
+        } else {
+          this.cart.push({key,id:product.id,name:product.name,type,echoes:product.echoes,bonus:product.bonus,totalEcho:product.totalEcho,price,cost:product.cost||0,qty:1,isSkin:false,volumeDiscount:product.volumeDiscount||null,skinPackName:s.name});
         }
-      } else {
-        if(product.volumeDiscount&&type==='private'){
-          const vd=product.volumeDiscount.slice().sort((a,b)=>b.minQty-a.minQty).find(v=>pack.qty>=v.minQty);
-          if(vd)price=vd.price;
-        }
-        this.cart.push({key,id:product.id,name:product.name,type,echoes:product.echoes,bonus:product.bonus,totalEcho:product.totalEcho,price,cost:product.cost||0,qty:pack.qty,isSkin:false,volumeDiscount:product.volumeDiscount||null,skinPackName:s.name});
       }
     });
     this.updateCartBadge();this.recalcCart();
@@ -514,12 +550,12 @@ const App = {
   renderAdmin(){
     const c=document.getElementById('page-admin');
     c.innerHTML=`<div class="page-header animate-fade-in-up" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;"><h1 class="page-title">⚙️ แอดมิน</h1><button class="btn btn-sm ${this._mobilePreview?'btn-primary':'btn-outline'}" onclick="App.toggleMobilePreview()">📱 ${this._mobilePreview?'ปิดมือถือ':'ดูมือถือ'}</button></div>
-      <div class="admin-tabs animate-fade-in-up">${[['shop','🏪 ร้าน'],['buttons','🔘 ปุ่ม'],['products','📦 สินค้า'],['skins','🎁 สกิน'],['queue','📋 คิว'],['rentals','🎮 เช่า'],['faq','❓ FAQ'],['promos','🎉 โปรฯ'],['users','👥 ผู้ใช้'],['chatbot','🤖 Bot'],['profit','💰 กำไร'],['password','🔒 รหัส']].map(([k,l])=>`<button class="admin-tab ${this.adminTab===k?'active':''}" onclick="App.adminTab='${k}';App.renderAdmin();">${l}</button>`).join('')}</div>
+      <div class="admin-tabs animate-fade-in-up">${[['shop','🏪 ร้าน'],['buttons','🔘 ปุ่ม'],['products','📦 สินค้า'],['skins','🎁 สกิน'],['queue','📋 คิว'],['rentals','🎮 เช่า'],['faq','❓ FAQ'],['promos','🎉 โปรฯ'],['guides','📖 คู่มือ'],['users','👥 ผู้ใช้'],['chatbot','🤖 Bot'],['profit','💰 กำไร'],['password','🔒 รหัส']].map(([k,l])=>`<button class="admin-tab ${this.adminTab===k?'active':''}" onclick="App.adminTab='${k}';App.renderAdmin();">${l}</button>`).join('')}</div>
       <div class="animate-fade-in-up" id="adminContent"></div>
       <div style="margin-top:24px;text-align:center;"><button class="btn btn-outline" onclick="App.adminLoggedIn=false;App.navigate('home');">🚪 ออกจากระบบ</button></div>`;
     this._renderAdminTab();
   },
-  _renderAdminTab(){const ac=document.getElementById('adminContent');if(!ac)return;const fn={shop:'_adminShop',buttons:'_adminButtons',products:'_adminProducts',skins:'_adminSkins',queue:'_adminQueue',rentals:'_adminRentals',faq:'_adminFAQ',promos:'_adminPromos',users:'_adminUsers',chatbot:'_adminChatbot',profit:'_adminProfit',password:'_adminPassword'};if(fn[this.adminTab])this[fn[this.adminTab]](ac);},
+  _renderAdminTab(){const ac=document.getElementById('adminContent');if(!ac)return;const fn={shop:'_adminShop',buttons:'_adminButtons',products:'_adminProducts',skins:'_adminSkins',queue:'_adminQueue',rentals:'_adminRentals',faq:'_adminFAQ',promos:'_adminPromos',guides:'_adminGuides',users:'_adminUsers',chatbot:'_adminChatbot',profit:'_adminProfit',password:'_adminPassword'};if(fn[this.adminTab])this[fn[this.adminTab]](ac);},
 
   _adminShop(ac){
     const status=Store.getShopStatus();const bank=Store.getBank();
@@ -874,6 +910,69 @@ const App = {
   _deletePromo(i){const p=Store.getPromos();p.splice(i,1);Store.setPromos(p);this.renderAdmin();},
   _savePromos(){const promos=Store.getPromos();promos.forEach((p,i)=>{p.title=document.getElementById(`prT${i}`)?.value||p.title;p.description=document.getElementById(`prD${i}`)?.value||p.description;p.content=document.getElementById(`prC${i}`)?.value||p.content;if(this._uploadedImages[`promoImgs${i}`]){if(!p.images)p.images=[];p.images.push(...this._uploadedImages[`promoImgs${i}`]);}});Store.setPromos(promos);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
   _addPromo(){const title=document.getElementById('newPromoTitle')?.value;const desc=document.getElementById('newPromoDesc')?.value;const content=document.getElementById('newPromoContent')?.value;if(!title){this.showToast('กรอกชื่อค่ะ','warning');return;}const p=Store.getPromos();const imgs=this._uploadedImages['promoImgsnew']||[];p.push({id:Date.now(),title,description:desc||'',content:content||'',active:true,images:imgs});Store.setPromos(p);this._uploadedImages={};this.showToast('✅ เพิ่มโปรโมชั่น!');this.renderAdmin();},
+
+  // ========== ADMIN GUIDES ==========
+  _adminGuides(ac){
+    const pages=[{key:'order',label:'📋 หน้าสั่งซื้อ (เติม)'},{key:'gift',label:'🎁 หน้าส่งของขวัญ'},{key:'rental',label:'🎮 หน้าเช่าไอดี'}];
+    ac.innerHTML=`<div class="card"><h3 style="margin-bottom:16px;">📖 จัดการป๊อปอัพคู่มือ</h3>
+      <div class="note-box info" style="margin-bottom:16px;">ข้อความแนะนำที่จะแสดงเป็นป๊อปอัพก่อนเข้าหน้าสั่งซื้อ / ส่งของ / เช่า ลูกค้าต้องเลื่อนลงและกดปิดก่อนจึงจะเข้าหน้านั้นได้ค่ะ</div>
+      ${pages.map(p=>{
+        const g=Store.getGuide(p.key);
+        return`<div style="padding:16px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>${p.label}</strong>
+            <div style="display:flex;gap:6px;align-items:center;"><span class="badge ${g.active?'badge-green':'badge-red'}">${g.active?'เปิด':'ปิด'}</span>
+              <button class="btn-copy" onclick="App._toggleGuide('${p.key}')">${g.active?'🔴':'🟢'}</button>
+              <button class="btn btn-sm btn-outline" onclick="App._previewGuide('${p.key}')">👁️ ดูตัวอย่าง</button>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">📝 หัวข้อ (ตัวใหญ่)</label><input class="form-input" id="guideTitle_${p.key}" value="${g.title||''}" placeholder="ยินดีต้อนรับ..."></div>
+          <div class="form-group"><label class="form-label">📄 เนื้อหา (แต่ละบรรทัดขึ้นบรรทัดใหม่)</label><textarea class="form-textarea" id="guideContent_${p.key}" rows="5" placeholder="วิธีใช้เว็บไซด์นี้...">${(g.content||'').replace(/\n/g,'\n')}</textarea></div>
+          <div class="form-group"><label class="form-label">😊 อิโมจิปุ่มปิด</label><input class="form-input" id="guideEmoji_${p.key}" value="${g.closeEmoji||'❌'}" style="width:120px;"></div>
+          <div class="form-group"><label class="form-label">🖼️ แทรกรูปภาพ (หลายรูปได้)</label><input type="file" accept="image/*" multiple onchange="App._handleGuideImages(event,'${p.key}')" style="font-size:0.85rem;">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${(g.images||[]).map((img,j)=>`<div style="position:relative;"><img src="${img}" style="width:60px;height:60px;border-radius:8px;object-fit:cover;cursor:pointer;" onclick="App.openLightbox('${img}')"><button style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#F44336;color:white;font-size:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="App._removeGuideImage('${p.key}',${j})">✕</button></div>`).join('')}</div>
+          </div>
+        </div>`;
+      }).join('')}
+      <button class="btn btn-primary" onclick="App._saveGuides()">💾 บันทึกคู่มือทั้งหมด</button>
+    </div>`;
+  },
+  _toggleGuide(page){const g=Store.getGuide(page);g.active=!g.active;Store.setGuide(page,g);this.renderAdmin();},
+  _previewGuide(page){const g=Store.getGuide(page);this._showGuidePopup(page,g);},
+  _handleGuideImages(event,page){
+    const files=event.target.files;if(!files.length)return;
+    Array.from(files).forEach(file=>{
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const img=new Image();
+        img.onload=()=>{
+          let w=img.width,h=img.height;const max=600;
+          if(w>max){h=Math.round((h*max)/w);w=max;}
+          const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+          canvas.getContext('2d').drawImage(img,0,0,w,h);
+          const dataUrl=canvas.toDataURL('image/webp',0.8);
+          const g=Store.getGuide(page);
+          if(!g.images)g.images=[];
+          g.images.push(dataUrl);
+          Store.setGuide(page,g);
+          this.showToast('✅ เพิ่มรูปสำเร็จ!');
+          this.renderAdmin();
+        };
+        img.src=e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+  _removeGuideImage(page,idx){const g=Store.getGuide(page);if(g.images){g.images.splice(idx,1);Store.setGuide(page,g);this.renderAdmin();}},
+  _saveGuides(){
+    ['order','gift','rental'].forEach(page=>{
+      const g=Store.getGuide(page);
+      g.title=document.getElementById(`guideTitle_${page}`)?.value||'';
+      g.content=document.getElementById(`guideContent_${page}`)?.value||'';
+      g.closeEmoji=document.getElementById(`guideEmoji_${page}`)?.value||'❌';
+      Store.setGuide(page,g);
+    });
+    this.showToast('✅ บันทึกคู่มือเรียบร้อย!');
+  },
 
   _adminUsers(ac){
     const users=Store.getUsers();const orders=Store.getOrders();

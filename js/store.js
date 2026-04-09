@@ -64,7 +64,10 @@ const Store = {
     receipt_note_topup: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
     receipt_note_send: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
     receipt_note_rental: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
-    order_notes: []
+    order_notes: [],
+    guide_order: {title:'ยินดีต้อนรับเข้าสู่หน้าเติมเกมนะคะะ',content:'วิธีใช้เว็บไซด์นี้เวลาจะใช้บัตรส่วนลดสกิน ให้เช็คเองผ่านเกมได้เลยน้าว่าบัตรนี้ใช้กับสิ่งๆนี้ได้ไหมค่ะ สอบถามเค้าในเฟสบุ๊คก่อนได้ หากใช้บัตรไม่ได้ไม่ต้องกดน้า กดข้อมูลที่มีตามจริงใช้ได้จริงเท่านั้นค่ะ\nเลือกสินค้าที่ต้องการ\nจ่ายเงินในตระกร้า\nแคปสลิปใบเสร็จส่งให้แอดมินดูได้เลยค่า',closeEmoji:'💕',images:[],active:true},
+    guide_gift: {title:'ยินดีต้อนรับเข้าสู่หน้าส่งของขวัญค่ะ',content:'เลือกสกินที่ต้องการส่ง\nต้องแอดเพื่อนในเกม 24 ชม. ก่อนถึงจะส่งได้\nไม่สามารถใช้บัตรส่วนลดได้\nชำระเงินแล้วแคปสลิปส่งให้แอดมินค่ะ',closeEmoji:'🎁',images:[],active:true},
+    guide_rental: {title:'ยินดีต้อนรับเข้าสู่หน้าเช่าไอดีค่ะ',content:'เลือกไอดีที่ต้องการเช่า\nเลือกวันและช่วงเวลาที่ต้องการ\nชำระเงินแล้วรอแอดมินส่งข้อมูลเข้าไอดีค่ะ',closeEmoji:'🎮',images:[],active:true}
   },
 
   _getDefault(key){
@@ -84,7 +87,8 @@ const Store = {
       'banner_size','mascot_size','chatbot_size','chatbot_bottom',
       'order_banner','gift_banner','order_banner_size','gift_banner_size',
       'loading_img','loading_img_size',
-      'receipt_note_topup','receipt_note_send','receipt_note_rental'
+      'receipt_note_topup','receipt_note_send','receipt_note_rental',
+      'guide_order','guide_gift','guide_rental'
     ];
 
     // Fill cache with defaults first (so page can render immediately if Firebase is slow)
@@ -134,7 +138,7 @@ const Store = {
       'order_banner_size','gift_banner_size','loading_img_size',
       'banner_size','chatbot_bottom',
       'receipt_note_topup','receipt_note_send','receipt_note_rental',
-      'order_notes'];
+      'order_notes','guide_order','guide_gift','guide_rental'];
     simplePaths.forEach(p => this._listen(p));
 
     // Auto-refresh UI function
@@ -306,6 +310,9 @@ const Store = {
   setLoadingImg(v){ this._fbSet('loading_img', v); },
   getLoadingImgSize(){ return this._cache['loading_img_size'] || 100; },
   setLoadingImgSize(v){ this._fbSet('loading_img_size', v); },
+
+  getGuide(page){ return this._cache[`guide_${page}`] || this._defaults[`guide_${page}`] || {title:'',content:'',closeEmoji:'❌',images:[],active:true}; },
+  setGuide(page, data){ this._fbSet(`guide_${page}`, data); },
 
   getProfitSummary(){
     const orders = this.getOrders().filter(o => o.status === 'done');

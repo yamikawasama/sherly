@@ -63,6 +63,16 @@
   <div class="modal-overlay" id="genericModal"><div class="modal" id="genericModalContent" style="position:relative;max-width:560px;"></div></div>
   <div class="lightbox-overlay" id="lightbox" onclick="this.classList.remove('active')"><img id="lightboxImg" src="" alt=""><button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('active')">✕</button></div>
 
+  <!-- Guide Popup -->
+  <div class="guide-overlay" id="guideOverlay">
+    <div class="guide-backdrop"></div>
+    <div class="guide-popup">
+      <div class="guide-popup-scroll" id="guideScrollArea">
+        <div id="guidePopupBody"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Chatbot -->
   <div class="chatbot-container">
     <div class="chatbot-window" id="chatbotWindow">
