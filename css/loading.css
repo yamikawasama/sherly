@@ -1,0 +1,248 @@
+/* ============================================
+   🐰 Loading Screen - Cute Bunny Head
+   ============================================ */
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: linear-gradient(135deg, #FFD1DC 0%, #FFFFFF 40%, #D4F5E0 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+[data-theme="dark"] .loading-screen {
+  background: linear-gradient(135deg, #2A1F35 0%, #1A1520 40%, #1A2A22 100%);
+}
+
+.loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Bunny Head */
+.bunny-loader {
+  position: relative;
+  width: 120px;
+  height: 140px;
+  animation: bunnyBounce 1s ease-in-out infinite;
+}
+
+@keyframes bunnyBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* Ears */
+.bunny-ear {
+  position: absolute;
+  width: 28px;
+  height: 60px;
+  background: #F2A7B3;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  top: 0;
+}
+
+.bunny-ear::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 40px;
+  background: #FFD1DC;
+  border-radius: 50%;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bunny-ear.left {
+  left: 22px;
+  transform: rotate(-10deg);
+}
+
+.bunny-ear.right {
+  right: 22px;
+  transform: rotate(10deg);
+}
+
+/* Head */
+.bunny-head {
+  position: absolute;
+  width: 100px;
+  height: 90px;
+  background: white;
+  border-radius: 50%;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 20px rgba(242, 167, 179, 0.2);
+}
+
+[data-theme="dark"] .bunny-head {
+  background: #F0E8EC;
+}
+
+/* Eyes */
+.bunny-eye {
+  position: absolute;
+  width: 12px;
+  height: 14px;
+  background: #4A3B3F;
+  border-radius: 50%;
+  top: 32px;
+  animation: bunnyBlink 3s ease infinite;
+}
+
+.bunny-eye.left { left: 26px; }
+.bunny-eye.right { right: 26px; }
+
+.bunny-eye::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  right: 2px;
+}
+
+@keyframes bunnyBlink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+/* Nose */
+.bunny-nose {
+  position: absolute;
+  width: 10px;
+  height: 8px;
+  background: #F2A7B3;
+  border-radius: 50%;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Mouth */
+.bunny-mouth {
+  position: absolute;
+  width: 16px;
+  height: 8px;
+  border-bottom: 2px solid #F2A7B3;
+  border-radius: 0 0 50% 50%;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Cheeks */
+.bunny-cheek {
+  position: absolute;
+  width: 18px;
+  height: 12px;
+  background: rgba(242, 167, 179, 0.4);
+  border-radius: 50%;
+  top: 44px;
+}
+
+.bunny-cheek.left { left: 10px; }
+.bunny-cheek.right { right: 10px; }
+
+/* Loading Text */
+.loading-text {
+  margin-top: 30px;
+  font-family: 'Kanit', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4A3B3F;
+  text-align: center;
+}
+
+[data-theme="dark"] .loading-text {
+  color: #F0E8EC;
+}
+
+.loading-dots::after {
+  content: '';
+  animation: loadDots 1.5s steps(4, end) infinite;
+}
+
+@keyframes loadDots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* Loading Progress Bar */
+.loading-bar-container {
+  width: 200px;
+  height: 6px;
+  background: rgba(242, 167, 179, 0.2);
+  border-radius: 10px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.loading-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #F2A7B3, #B8E6C8, #F2A7B3);
+  background-size: 200% 100%;
+  animation: loadingProgress 2s ease forwards, shimmerBar 1.5s ease infinite;
+}
+
+@keyframes loadingProgress {
+  0% { width: 0%; }
+  50% { width: 60%; }
+  100% { width: 100%; }
+}
+
+@keyframes shimmerBar {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Floating Hearts/Stars */
+.loading-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  font-size: 1.2rem;
+  opacity: 0;
+  animation: particleFloat 3s ease infinite;
+}
+
+@keyframes particleFloat {
+  0% { 
+    opacity: 0;
+    transform: translateY(100vh) rotate(0deg);
+  }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.6; }
+  100% { 
+    opacity: 0;
+    transform: translateY(-10vh) rotate(360deg);
+  }
+}
+
+.particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 4s; }
+.particle:nth-child(2) { left: 20%; animation-delay: 0.5s; animation-duration: 3.5s; }
+.particle:nth-child(3) { left: 35%; animation-delay: 1s; animation-duration: 5s; }
+.particle:nth-child(4) { left: 50%; animation-delay: 0.3s; animation-duration: 4.5s; }
+.particle:nth-child(5) { left: 65%; animation-delay: 1.2s; animation-duration: 3s; }
+.particle:nth-child(6) { left: 75%; animation-delay: 0.7s; animation-duration: 4.2s; }
+.particle:nth-child(7) { left: 85%; animation-delay: 1.5s; animation-duration: 3.8s; }
+.particle:nth-child(8) { left: 90%; animation-delay: 0.2s; animation-duration: 4.8s; }
