@@ -417,7 +417,6 @@ const App = {
         <div class="stat-card"><div class="stat-value">฿${myOrders.reduce((s,o)=>s+(o.totalPrice||0),0).toLocaleString()}</div><div class="stat-label">ยอดสั่งรวม</div></div>
       </div>
       ${myOrders.length>0?myOrders.slice().reverse().map(o=>{
-        const queueAhead=allOrders.filter(po=>po.type===o.type&&po.status!=='done'&&po.id<o.id&&o.status!=='done').length;
         return`<div class="card" style="margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <div>
@@ -428,9 +427,6 @@ const App = {
               ${o.status==='waiting'?'⏳ รอดำเนินการ':o.status==='processing'?'🔄 กำลังดำเนินการ':'✅ เสร็จแล้ว'}
             </span>
           </div>
-          ${o.status!=='done'?`<div style="background:linear-gradient(135deg,#fff3cd,#ffeaa7);padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:0.85rem;">
-            ⏳ มีคิวก่อนหน้าคุณ <strong style="color:var(--primary);font-size:1rem;">${queueAhead}</strong> รายการ
-          </div>`:''}
           <div class="table-container">
             <table class="table" style="margin-bottom:0;">
               <thead><tr><th>รายการ</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th></tr></thead>

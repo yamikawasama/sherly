@@ -128,7 +128,8 @@ const Store = {
     const simplePaths = ['products','skin_packs','buttons','promos','faq','rentals',
       'bank','chatbot','orders','bookings','admin_user','admin_pass','users',
       'order_banner_size','gift_banner_size','loading_img_size',
-      'banner_size','chatbot_bottom'];
+      'banner_size','chatbot_bottom',
+      'receipt_note_topup','receipt_note_send','receipt_note_rental'];
     simplePaths.forEach(p => this._listen(p));
 
     // Auto-refresh UI function
