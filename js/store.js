@@ -60,7 +60,10 @@ const Store = {
     banner_size: 100, mascot_size: 100, chatbot_size: 100, chatbot_bottom: 0,
     order_banner: '', gift_banner: '',
     order_banner_size: 100, gift_banner_size: 100,
-    loading_img: '', loading_img_size: 100
+    loading_img: '', loading_img_size: 100,
+    receipt_note_topup: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
+    receipt_note_send: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
+    receipt_note_rental: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕'
   },
 
   _getDefault(key){
