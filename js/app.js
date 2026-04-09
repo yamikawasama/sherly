@@ -43,7 +43,7 @@ const App = {
     const pe=document.getElementById(`page-${page}`);if(pe){pe.classList.add('active');this.renderPage(page);}
     document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('.sidebar-overlay')?.classList.remove('active');
   },
-  renderPage(page){const fn={home:'renderHome',order:'renderOrder',gift:'renderGift',rental:'renderRental',admin:'renderAdmin',faqdetail:'renderFAQDetail',promodetail:'renderPromoDetail'};if(fn[page])this[fn[page]]();},
+  renderPage(page){const fn={home:'renderHome',order:'renderOrder',gift:'renderGift',rental:'renderRental',admin:'renderAdmin',myorders:'renderMyOrders',faqdetail:'renderFAQDetail',promodetail:'renderPromoDetail'};if(fn[page])this[fn[page]]();},
 
   // ========== HOME ==========
   renderHome(){
@@ -388,6 +388,72 @@ const App = {
   },
   toggleSlot(hour){const idx=this._selectedSlots.indexOf(hour);if(idx>=0)this._selectedSlots.splice(idx,1);else this._selectedSlots.push(hour);this._selectedSlots.sort((a,b)=>a-b);this.renderRental();},
   bookRental(){if(!Store.getCurrentUser()){this.showAuthModal('login');return;}const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);if(!rental||this._selectedSlots.length===0)return;const user=Store.getCurrentUser();Store.addBooking({rentalId:rental.id,userId:user.id,userName:user.gameName||user.username,contact:user.contact||'',date:this._selectedDate,startHour:Math.min(...this._selectedSlots),endHour:Math.max(...this._selectedSlots)+1,totalHours:this._selectedSlots.length,totalPrice:this._selectedSlots.length*rental.pricePerHour,status:'booked'});this._selectedSlots=[];this.showToast('✅ จองสำเร็จ!','success');this.renderRental();},
+
+  // ========== MY ORDERS (Customer) ==========
+  renderMyOrders(){
+    const c=document.getElementById('page-myorders');
+    const user=Store.getCurrentUser();
+    if(!user){
+      c.innerHTML=`<div class="animate-fade-in-up" style="display:flex;align-items:center;justify-content:center;min-height:60vh;">
+        <div class="card" style="max-width:400px;width:100%;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:12px;">📦</div>
+          <h2>ออเดอร์ของฉัน</h2>
+          <p style="color:var(--text-light);margin:12px 0 20px;">กรุณาเข้าสู่ระบบเพื่อดูออเดอร์ค่ะ</p>
+          <button class="btn btn-primary btn-lg" style="width:100%;" onclick="App.showAuthModal('login')">🔑 เข้าสู่ระบบ</button>
+        </div>
+      </div>`;
+      return;
+    }
+    const allOrders=Store.getOrders();
+    const myOrders=allOrders.filter(o=>(o.userId===user.id)||(o.username===user.username));
+    const pendingAll=allOrders.filter(o=>o.status!=='done');
+
+    c.innerHTML=`<div class="animate-fade-in-up">
+      <div class="page-header"><h1 class="page-title">📦 ออเดอร์ของฉัน</h1></div>
+      <div class="grid-3" style="gap:12px;margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-value">${myOrders.length}</div><div class="stat-label">ออเดอร์ทั้งหมด</div></div>
+        <div class="stat-card"><div class="stat-value">${myOrders.filter(o=>o.status!=='done').length}</div><div class="stat-label">กำลังดำเนินการ</div></div>
+        <div class="stat-card"><div class="stat-value">฿${myOrders.reduce((s,o)=>s+(o.totalPrice||0),0).toLocaleString()}</div><div class="stat-label">ยอดสั่งรวม</div></div>
+      </div>
+      ${myOrders.length>0?myOrders.slice().reverse().map(o=>{
+        const queueAhead=pendingAll.filter(po=>po.status!=='done'&&po.id<o.id&&o.status!=='done').length;
+        return`<div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <strong style="font-size:1.1rem;">ออเดอร์ #${o.queueNumber||'-'}</strong>
+              <span class="badge" style="margin-left:8px;background:${o.type==='topup'?'var(--primary)':'var(--secondary)'};color:white;">${o.type==='topup'?'💎 เติม':'🎁 ส่ง'}</span>
+            </div>
+            <span class="status-badge status-${o.status}" style="font-size:0.85rem;padding:6px 14px;">
+              ${o.status==='waiting'?'⏳ รอดำเนินการ':o.status==='processing'?'🔄 กำลังดำเนินการ':'✅ เสร็จแล้ว'}
+            </span>
+          </div>
+          ${o.status!=='done'?`<div style="background:linear-gradient(135deg,#fff3cd,#ffeaa7);padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:0.85rem;">
+            ⏳ มีคิวก่อนหน้าคุณ <strong style="color:var(--primary);font-size:1rem;">${queueAhead}</strong> รายการ
+          </div>`:''}
+          <div class="table-container">
+            <table class="table" style="margin-bottom:0;">
+              <thead><tr><th>รายการ</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>${(o.items||[]).map(i=>(i.isSkin?'✨':'💎')+' '+i.name+(i.qty>1?' x'+i.qty:'')).join('<br>')}</td>
+                  <td style="font-weight:700;color:var(--primary);font-size:1rem;">฿${(o.totalPrice||0).toLocaleString()}</td>
+                  <td>${o.slipImage?'<img src="'+o.slipImage+'" style="width:50px;height:70px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="App.openLightbox(\\''+o.slipImage+'\\')">':'-'}</td>
+                  <td>
+                    <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                      <span class="status-badge status-${o.status}" style="font-size:0.75rem;">${o.status==='waiting'?'⏳ รอ':o.status==='processing'?'🔄 ทำ':'✅ เสร็จ'}</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:8px;font-size:0.75rem;color:var(--text-light);text-align:right;">
+            🕐 ${new Date(o.createdAt).toLocaleString('th-TH')} | UID: ${o.uid||'-'} | ชื่อ: ${o.gameName||'-'}
+          </div>
+        </div>`;
+      }).join(''):'<div class="card" style="text-align:center;padding:40px;"><div style="font-size:3rem;margin-bottom:12px;">📭</div><h3>ยังไม่มีออเดอร์</h3><p style="color:var(--text-light);margin-top:8px;">ไปสั่งสินค้าได้เลยค่ะ~</p><button class="btn btn-primary" style="margin-top:16px;" onclick="App.navigate(\\'order\\')">📋 สั่งสินค้า</button></div>'}
+    </div>`;
+  },
 
   // ========== ADMIN ==========
   showAdminLogin(){this.currentPage='admin';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelector('.nav-item[data-page="admin"]')?.classList.add('active');document.querySelectorAll('.page-view').forEach(p=>p.classList.remove('active'));const pe=document.getElementById('page-admin');if(pe){pe.classList.add('active');pe.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;"><div class="card animate-bounce-in" style="max-width:400px;width:100%;text-align:center;"><div style="font-size:3rem;margin-bottom:12px;">🔒</div><h2>เข้าสู่ระบบแอดมิน</h2><div class="form-group" style="text-align:left;margin-top:20px;"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="adminUserInput" placeholder="ชื่อผู้ใช้"></div><div class="form-group" style="text-align:left;"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="adminPassInput" placeholder="รหัสผ่าน" onkeypress="if(event.key==='Enter')App.doAdminLogin()"></div><button class="btn btn-primary btn-lg" style="width:100%;" onclick="App.doAdminLogin()">🔑 เข้าสู่ระบบ</button></div></div>`;}},
