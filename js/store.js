@@ -178,6 +178,7 @@ const Store = {
   setSkinPacks(p){ this._fbSet('skin_packs', p); },
 
   getOrders(){ return this._cache['orders'] || []; },
+  setOrders(o){ this._fbSet('orders', o); },
   addOrder(order){
     const orders = this.getOrders();
     order.id = Date.now();
@@ -195,6 +196,7 @@ const Store = {
   },
 
   getUsers(){ return this._cache['users'] || []; },
+  setUsers(u){ this._fbSet('users', u); },
   register(user){
     const users = this.getUsers();
     if(users.find(u => u.username === user.username)) return {error:'ชื่อผู้ใช้นี้มีอยู่แล้ว'};
