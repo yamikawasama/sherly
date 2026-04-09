@@ -45,59 +45,85 @@ const Store = {
     });
   },
 
-  // ─── Initialize: load all data from Firebase ───
+  // ─── Default values ───
+  _defaults: {
+    shop_status: {open:true,message:''},
+    marquee: '🐰 ยินดีต้อนรับสู่ร้าน Sherly Panty! 🎮 รับเติม/ส่งของขวัญ Identity V แบบ Official ✨ สมัครสมาชิกรับส่วนลดพิเศษ 💕',
+    banner: 'assets/images/banner.png',
+    mascot: 'assets/images/mascot.png',
+    chatbot_img: 'assets/images/chatbot.png',
+    products: null, skin_packs: null,
+    orders: [], users: [],
+    admin_user: 'PlengloveKB',
+    admin_pass: '4t.4{@],EzUkq~L_PKBxJEsJsMYLOVEISKB@LC+5z%Q',
+    buttons: null, promos: null, faq: null, rentals: null,
+    bookings: [], bank: null, chatbot: null, theme: 'light',
+    banner_size: 100, mascot_size: 100, chatbot_size: 100, chatbot_bottom: 0,
+    order_banner: '', gift_banner: '',
+    order_banner_size: 100, gift_banner_size: 100,
+    loading_img: '', loading_img_size: 100
+  },
+
+  _getDefault(key){
+    const d = this._defaults[key];
+    if(d !== null && d !== undefined) return d;
+    // Fallback to DEFAULT_ constants
+    const map = {products:DEFAULT_PRODUCTS,skin_packs:DEFAULT_SKIN_PACKS,buttons:DEFAULT_BUTTONS,promos:DEFAULT_PROMOS,faq:DEFAULT_FAQ,rentals:DEFAULT_RENTALS,bank:DEFAULT_BANK,chatbot:DEFAULT_CHATBOT};
+    return map[key] || null;
+  },
+
+  // ─── Initialize: load all data from Firebase (with timeout) ───
   async init(){
     const paths = [
       'shop_status','marquee','banner','mascot','chatbot_img',
       'products','skin_packs','orders','users','admin_user','admin_pass',
-      'buttons','promos','faq','rentals','bookings','bank','chatbot','theme',
+      'buttons','promos','faq','rentals','bookings','bank','chatbot',
       'banner_size','mascot_size','chatbot_size','chatbot_bottom',
       'order_banner','gift_banner','order_banner_size','gift_banner_size',
       'loading_img','loading_img_size'
     ];
-    // Load all data in parallel
-    const defaults = {
-      shop_status: {open:true,message:''},
-      marquee: '🐰 ยินดีต้อนรับสู่ร้าน Sherly Panty! 🎮 รับเติม/ส่งของขวัญ Identity V แบบ Official ✨ สมัครสมาชิกรับส่วนลดพิเศษ 💕',
-      banner: 'assets/images/banner.png',
-      mascot: 'assets/images/mascot.png',
-      chatbot_img: 'assets/images/chatbot.png',
-      products: DEFAULT_PRODUCTS,
-      skin_packs: DEFAULT_SKIN_PACKS,
-      orders: [],
-      users: [],
-      admin_user: 'PlengloveKB',
-      admin_pass: '4t.4{@],EzUkq~L_PKBxJEsJsMYLOVEISKB@LC+5z%Q',
-      buttons: DEFAULT_BUTTONS,
-      promos: DEFAULT_PROMOS,
-      faq: DEFAULT_FAQ,
-      rentals: DEFAULT_RENTALS,
-      bookings: [],
-      bank: DEFAULT_BANK,
-      chatbot: DEFAULT_CHATBOT,
-      theme: 'light',
-      banner_size: 100, mascot_size: 100, chatbot_size: 100, chatbot_bottom: 0,
-      order_banner: '', gift_banner: '',
-      order_banner_size: 100, gift_banner_size: 100,
-      loading_img: '', loading_img_size: 100
-    };
 
-    // Check if DB has been initialized
-    const rootSnap = await db.ref().once('value');
-    if(!rootSnap.exists()){
-      // First time: seed all defaults to Firebase
-      console.log('🌱 Seeding defaults to Firebase...');
-      for(const [key, val] of Object.entries(defaults)){
-        await this._fbSet(key, val);
-      }
+    // Fill cache with defaults first (so page can render immediately if Firebase is slow)
+    paths.forEach(p => { this._cache[p] = this._getDefault(p); });
+
+    try {
+      // Race Firebase load vs 8-second timeout
+      await Promise.race([
+        this._loadFromFirebase(paths),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+      ]);
+    } catch(e) {
+      console.warn('⚠️ Firebase load timeout/error, using defaults:', e.message);
     }
 
-    // Load all into cache
-    await Promise.all(paths.map(async p => {
-      this._cache[p] = await this._fbGet(p, defaults[p]);
-    }));
+    this._ready = true;
+    this._readyCallbacks.forEach(cb => cb());
+    this._readyCallbacks = [];
+    console.log('✅ Store ready!');
 
-    // Setup real-time listeners for shared data (admin changes reflected everywhere)
+    // Setup listeners in background (non-blocking)
+    this._setupListeners();
+  },
+
+  async _loadFromFirebase(paths){
+    // Check if DB has data, seed if empty
+    const rootSnap = await db.ref().once('value');
+    if(!rootSnap.exists()){
+      console.log('🌱 Seeding defaults to Firebase...');
+      const seedData = {};
+      paths.forEach(p => { seedData[p] = this._getDefault(p); });
+      await db.ref().set(seedData);
+    }
+
+    // Load all into cache in parallel
+    await Promise.all(paths.map(async p => {
+      const val = await this._fbGet(p, this._getDefault(p));
+      if(val !== null && val !== undefined) this._cache[p] = val;
+    }));
+    console.log('✅ Firebase data loaded!');
+  },
+
+  _setupListeners(){
     const listenPaths = [
       'shop_status','marquee','banner','mascot','chatbot_img',
       'products','skin_packs','buttons','promos','faq','rentals',
@@ -106,11 +132,6 @@ const Store = {
       'loading_img','loading_img_size','orders','bookings'
     ];
     listenPaths.forEach(p => this._listen(p));
-
-    this._ready = true;
-    this._readyCallbacks.forEach(cb => cb());
-    this._readyCallbacks = [];
-    console.log('✅ Store initialized from Firebase!');
   },
 
   onReady(cb){
