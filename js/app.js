@@ -9,11 +9,12 @@ const App = {
   _mobilePreview:false,
 
   async init() {
+    this.setupLoading(); // Start loading timer immediately
     // Wait for Firebase data to load
     await Store.init();
     document.documentElement.setAttribute('data-theme',Store.getTheme());
     this.applyLoadingImg();
-    this.setupLoading(); this.updateMarquee(); this.updateShopStatus(); this.updateMascot(); this.updateChatbotImg(); this.applyChatbotSize(); this.applyMascotSize(); this.applyChatbotBottom();
+    this.updateMarquee(); this.updateShopStatus(); this.updateMascot(); this.updateChatbotImg(); this.applyChatbotSize(); this.applyMascotSize(); this.applyChatbotBottom();
     this.setupNav(); this.setupTheme(); this.setupChatbot(); this.updateAuthUI(); this.setupMobile(); this.setupSidebarToggle();
     const hash=window.location.hash.slice(1)||'home'; this.navigate(hash);
     window.addEventListener('hashchange',()=>this.navigate(window.location.hash.slice(1)||'home'));
@@ -437,7 +438,7 @@ const App = {
                 <tr>
                   <td>${(o.items||[]).map(i=>(i.isSkin?'✨':'💎')+' '+i.name+(i.qty>1?' x'+i.qty:'')).join('<br>')}</td>
                   <td style="font-weight:700;color:var(--primary);font-size:1rem;">฿${(o.totalPrice||0).toLocaleString()}</td>
-                  <td>${o.slipImage?'<img src="'+o.slipImage+'" style="width:50px;height:70px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="App.openLightbox(\\''+o.slipImage+'\\')">':'-'}</td>
+                  <td>${o.slipImage?`<img src="${o.slipImage}" style="width:50px;height:70px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="App.openLightbox('${o.slipImage}')">`:'-'}</td>
                   <td>
                     <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
                       <span class="status-badge status-${o.status}" style="font-size:0.75rem;">${o.status==='waiting'?'⏳ รอ':o.status==='processing'?'🔄 ทำ':'✅ เสร็จ'}</span>
@@ -455,7 +456,7 @@ const App = {
             🕐 ${new Date(o.createdAt).toLocaleString('th-TH')} | UID: ${o.uid||'-'} | ชื่อ: ${o.gameName||'-'}
           </div>
         </div>`;
-      }).join(''):'<div class="card" style="text-align:center;padding:40px;"><div style="font-size:3rem;margin-bottom:12px;">📭</div><h3>ยังไม่มีออเดอร์</h3><p style="color:var(--text-light);margin-top:8px;">ไปสั่งสินค้าได้เลยค่ะ~</p><button class="btn btn-primary" style="margin-top:16px;" onclick="App.navigate(\\'order\\')">📋 สั่งสินค้า</button></div>'}
+      }).join(''):'<div class="card" style="text-align:center;padding:40px;"><div style="font-size:3rem;margin-bottom:12px;">📭</div><h3>ยังไม่มีออเดอร์</h3><p style="color:var(--text-light);margin-top:8px;">ไปสั่งสินค้าได้เลยค่ะ~</p><button class="btn btn-primary" style="margin-top:16px;" onclick="App.navigate(\'order\')">📋 สั่งสินค้า</button></div>'}
     </div>`;
   },
 
