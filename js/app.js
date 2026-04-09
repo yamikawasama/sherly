@@ -388,7 +388,41 @@ const App = {
     </div>`;
   },
   toggleSlot(hour){const idx=this._selectedSlots.indexOf(hour);if(idx>=0)this._selectedSlots.splice(idx,1);else this._selectedSlots.push(hour);this._selectedSlots.sort((a,b)=>a-b);this.renderRental();},
-  bookRental(){if(!Store.getCurrentUser()){this.showAuthModal('login');return;}const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);if(!rental||this._selectedSlots.length===0)return;const user=Store.getCurrentUser();Store.addBooking({rentalId:rental.id,userId:user.id,userName:user.gameName||user.username,contact:user.contact||'',date:this._selectedDate,startHour:Math.min(...this._selectedSlots),endHour:Math.max(...this._selectedSlots)+1,totalHours:this._selectedSlots.length,totalPrice:this._selectedSlots.length*rental.pricePerHour,status:'booked'});this._selectedSlots=[];this.showToast('✅ จองสำเร็จ!','success');this.renderRental();},
+  bookRental(){
+    if(!Store.getCurrentUser()){this.showAuthModal('login');return;}
+    const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);
+    if(!rental||this._selectedSlots.length===0)return;
+    const user=Store.getCurrentUser();
+    const totalPrice=this._selectedSlots.length*rental.pricePerHour;
+    const bank=Store.getBank();const methods=bank.methods?bank.methods.filter(m=>m.active):[{name:'PromptPay',accountName:'ตัวอย่าง',accountNumber:'XXX',noteText:'เช่าไอดี',icon:'💳'}];
+    this._selectedPayMethod=0;this._slipDataUrl=null;this._slipVerified=false;
+    const modal=document.getElementById('genericModalContent');
+    modal.innerHTML=`<button class="modal-close" onclick="App.hideGenericModal()">✕</button>
+      <h2 class="modal-title">🎮 ชำระค่าเช่าไอดี</h2>
+      <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);"><div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><strong>${rental.emoji} ${rental.name}</strong><div style="font-size:0.85rem;color:var(--text-secondary);">${this._selectedDate} | ${Math.min(...this._selectedSlots)}:00-${Math.max(...this._selectedSlots)+1}:00 (${this._selectedSlots.length} ชม.)</div></div>
+        <div style="font-weight:700;color:var(--primary);font-size:1.2rem;">฿${totalPrice.toLocaleString()}</div>
+      </div></div>
+      <label class="form-label">📱 ช่องทางชำระเงิน</label>
+      <div class="pay-method">${methods.map((m,i)=>`<div class="pay-method-btn ${i===0?'selected':''}" onclick="App._selectPayMethod(${i})"><div class="pm-icon">${m.icon||'💳'}</div><div class="pm-name">${m.name}</div></div>`).join('')}</div>
+      <div id="payMethodInfo"></div>
+      <div class="form-group"><label class="form-label">📸 อัปโหลดสลิป</label>
+        <div class="slip-upload" onclick="document.getElementById('slipFile').click()"><div style="font-size:2rem;margin-bottom:8px;">📄</div><p style="color:var(--text-secondary);font-size:0.85rem;">คลิกเพื่อเลือกรูปสลิป</p><input type="file" id="slipFile" accept="image/*" style="display:none;" onchange="App.handleSlipUpload(event)"></div>
+        <div id="slipPreviewArea"></div></div>
+      <button class="btn btn-primary btn-lg" style="width:100%;" onclick="App._submitRentalWithSlip()">✅ ยืนยันและจองเลย</button>`;
+    this._renderPayMethodInfo(methods,0);document.getElementById('genericModal').classList.add('active');
+  },
+  _submitRentalWithSlip(){
+    if(!this._slipDataUrl){this.showToast('กรุณาอัปโหลดสลิปค่ะ','warning');return;}
+    const rental=Store.getRentals().find(r=>r.id===this._selectedRentalId);if(!rental)return;
+    const user=Store.getCurrentUser();
+    const totalPrice=this._selectedSlots.length*rental.pricePerHour;
+    const booking=Store.addBooking({rentalId:rental.id,userId:user.id,userName:user.gameName||user.username,contact:user.contact||'',date:this._selectedDate,startHour:Math.min(...this._selectedSlots),endHour:Math.max(...this._selectedSlots)+1,totalHours:this._selectedSlots.length,totalPrice,status:'booked',slipImage:this._slipDataUrl,slipVerified:this._slipVerified});
+    this._selectedSlots=[];this._slipDataUrl=null;this._slipVerified=false;
+    this.hideGenericModal();this.showToast('✅ จองสำเร็จ! รอแอดมินตรวจสอบค่ะ♡','success');
+    const receiptOrder={id:booking.id,queueNumber:Store.getBookings().filter(b=>b.rentalId===rental.id).length,type:'rental',gameName:user.gameName||user.username,uid:user.uid||'-',items:[{name:`${rental.emoji} ${rental.name} (${this._selectedDate})`,price:totalPrice,qty:1,isSkin:false}],totalPrice,slipImage:this._slipDataUrl};
+    this.showReceipt(receiptOrder);
+  },
 
   // ========== MY ORDERS (Customer) ==========
   renderMyOrders(){
