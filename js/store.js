@@ -125,7 +125,7 @@ const Store = {
   _setupListeners(){
     // Simple listeners (just cache update)
     const simplePaths = ['products','skin_packs','buttons','promos','faq','rentals',
-      'bank','chatbot','orders','bookings','admin_user','admin_pass',
+      'bank','chatbot','orders','bookings','admin_user','admin_pass','users',
       'order_banner_size','gift_banner_size','loading_img_size',
       'banner_size','chatbot_bottom'];
     simplePaths.forEach(p => this._listen(p));

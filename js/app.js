@@ -649,8 +649,107 @@ const App = {
   _savePromos(){const promos=Store.getPromos();promos.forEach((p,i)=>{p.title=document.getElementById(`prT${i}`)?.value||p.title;p.description=document.getElementById(`prD${i}`)?.value||p.description;p.content=document.getElementById(`prC${i}`)?.value||p.content;if(this._uploadedImages[`promoImgs${i}`]){if(!p.images)p.images=[];p.images.push(...this._uploadedImages[`promoImgs${i}`]);}});Store.setPromos(promos);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
   _addPromo(){const title=document.getElementById('newPromoTitle')?.value;const desc=document.getElementById('newPromoDesc')?.value;const content=document.getElementById('newPromoContent')?.value;if(!title){this.showToast('กรอกชื่อค่ะ','warning');return;}const p=Store.getPromos();const imgs=this._uploadedImages['promoImgsnew']||[];p.push({id:Date.now(),title,description:desc||'',content:content||'',active:true,images:imgs});Store.setPromos(p);this._uploadedImages={};this.showToast('✅ เพิ่มโปรโมชั่น!');this.renderAdmin();},
 
-  _adminUsers(ac){const users=Store.getUsers();const orders=Store.getOrders();ac.innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>👥 ผู้ใช้</h3><div class="badge badge-green" style="font-size:0.9rem;padding:6px 14px;">สมาชิกทั้งหมด: ${users.length} คน</div></div>${users.length>0?users.map(u=>{const uo=orders.filter(o=>o.userId===u.id);const totalSpent=uo.reduce((s,o)=>s+(o.totalPrice||0),0);return`<div style="padding:12px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;cursor:pointer;" onclick="this.querySelector('.user-detail').style.display=this.querySelector('.user-detail').style.display==='none'?'block':'none'"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>${u.username}</strong> <span class="badge ${u.banned?'badge-red':'badge-green'}">${u.banned?'แบน':'ปกติ'}</span></div><button class="btn-copy" onclick="event.stopPropagation();App._banUser(${u.id},${!u.banned})">${u.banned?'🟢 ปลด':'🔴 แบน'}</button></div><div class="user-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);"><div class="grid-2" style="gap:8px;"><div><label style="font-size:0.75rem;color:var(--text-light);">ชื่อในเกม</label><div style="font-weight:600;">${u.gameName||'-'}</div></div><div><label style="font-size:0.75rem;color:var(--text-light);">UID</label><div style="font-weight:600;">${u.uid||'-'}</div></div><div><label style="font-size:0.75rem;color:var(--text-light);">Server</label><div style="font-weight:600;">${u.server||'-'}</div></div><div><label style="font-size:0.75rem;color:var(--text-light);">Facebook/Discord</label><div style="font-weight:600;">${u.contact||'-'}</div></div><div><label style="font-size:0.75rem;color:var(--text-light);">วันสมัคร</label><div style="font-weight:600;">${new Date(u.createdAt).toLocaleString('th-TH')}</div></div><div><label style="font-size:0.75rem;color:var(--text-light);">ออเดอร์</label><div style="font-weight:600;">${uo.length} (฿${totalSpent.toLocaleString()})</div></div></div><div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border-color);"><label style="font-size:0.8rem;font-weight:600;">🔑 เปลี่ยนรหัสผ่านลูกค้า</label><div style="display:flex;gap:8px;margin-top:6px;align-items:center;"><input class="form-input" type="text" id="userNewPass${u.id}" placeholder="รหัสผ่านใหม่" style="padding:8px;flex:1;" onclick="event.stopPropagation()"><button class="btn btn-sm btn-primary" onclick="event.stopPropagation();App._changeUserPass(${u.id})">💾 เปลี่ยน</button></div></div>${uo.length>0?`<h4 style="margin:12px 0 8px;">📋 ประวัติ</h4><div style="max-height:200px;overflow-y:auto;">${uo.slice(-5).reverse().map(o=>`<div style="padding:6px;border:1px solid var(--border-color);border-radius:8px;margin-bottom:4px;font-size:0.8rem;"><span class="status-badge status-${o.status}">${o.status}</span> #${o.queueNumber} - ฿${(o.totalPrice||0).toLocaleString()} - ${new Date(o.createdAt).toLocaleDateString('th-TH')}</div>`).join('')}</div>`:''}</div></div>`;}).join(''):'<p style="color:var(--text-light);">ยังไม่มีผู้ใช้สมัครสมาชิก</p>'}</div>`;},
+  _adminUsers(ac){
+    const users=Store.getUsers();const orders=Store.getOrders();
+    // Calculate totals across all users
+    const allDoneOrders=orders.filter(o=>o.status==='done');
+    const totalAllRevenue=allDoneOrders.reduce((s,o)=>s+(o.totalPrice||0),0);
+    const totalAllEchoes=allDoneOrders.reduce((s,o)=>s+(o.items||[]).reduce((es,it)=>es+(it.totalEcho||it.echoes||0)*(it.qty||1),0),0);
+
+    ac.innerHTML=`<div class="card" style="margin-bottom:20px;">
+      <h3 style="margin-bottom:16px;">👥 ภาพรวมผู้ใช้</h3>
+      <div class="grid-4" style="gap:12px;">
+        <div class="stat-card"><div class="stat-value">${users.length}</div><div class="stat-label">สมาชิกทั้งหมด</div></div>
+        <div class="stat-card"><div class="stat-value">${allDoneOrders.length}</div><div class="stat-label">ออเดอร์สำเร็จ</div></div>
+        <div class="stat-card"><div class="stat-value">฿${totalAllRevenue.toLocaleString()}</div><div class="stat-label">ยอดขายรวม</div></div>
+        <div class="stat-card"><div class="stat-value">${totalAllEchoes.toLocaleString()}</div><div class="stat-label">กระดุมเติมรวม</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:16px;">📋 รายชื่อสมาชิก (${users.length} คน)</h3>
+      ${users.length>0?users.map(u=>{
+        const uo=orders.filter(o=>(o.userId===u.id)||(o.username===u.username));
+        const uoDone=uo.filter(o=>o.status==='done');
+        const totalSpent=uoDone.reduce((s,o)=>s+(o.totalPrice||0),0);
+        const totalEchoes=uoDone.reduce((s,o)=>s+(o.items||[]).reduce((es,it)=>es+(it.totalEcho||it.echoes||0)*(it.qty||1),0),0);
+        return`<div style="padding:14px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.parentElement.querySelector('.user-detail').style.display=this.parentElement.querySelector('.user-detail').style.display==='none'?'block':'none'">
+            <div>
+              <strong style="font-size:1rem;">${u.username}</strong>
+              <span style="font-size:0.8rem;color:var(--text-light);margin-left:8px;">${u.gameName||''}</span>
+              <span class="badge ${u.banned?'badge-red':'badge-green'}" style="margin-left:6px;">${u.banned?'แบน':'ปกติ'}</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-size:0.8rem;color:var(--text-light);">฿${totalSpent.toLocaleString()}</span>
+              <span style="font-size:0.8rem;">▼</span>
+            </div>
+          </div>
+          <div class="user-detail" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);">
+            <div class="grid-3" style="gap:10px;margin-bottom:14px;">
+              <div style="background:var(--bg-main);padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.75rem;color:var(--text-light);">UID</div>
+                <div style="font-weight:600;">${u.uid||'-'}</div>
+              </div>
+              <div style="background:var(--bg-main);padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.75rem;color:var(--text-light);">Server</div>
+                <div style="font-weight:600;">${u.server||'-'}</div>
+              </div>
+              <div style="background:var(--bg-main);padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.75rem;color:var(--text-light);">Facebook/Discord</div>
+                <div style="font-weight:600;font-size:0.85rem;">${u.contact||'-'}</div>
+              </div>
+            </div>
+            <div class="grid-4" style="gap:8px;margin-bottom:14px;">
+              <div style="background:var(--bg-main);padding:8px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.7rem;color:var(--text-light);">วันสมัคร</div>
+                <div style="font-weight:600;font-size:0.8rem;">${new Date(u.createdAt).toLocaleDateString('th-TH')}</div>
+              </div>
+              <div style="background:var(--bg-main);padding:8px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.7rem;color:var(--text-light);">ออเดอร์</div>
+                <div style="font-weight:600;">${uo.length} รายการ</div>
+              </div>
+              <div style="background:var(--bg-main);padding:8px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.7rem;color:var(--text-light);">เงินรวม</div>
+                <div style="font-weight:600;color:var(--primary);">฿${totalSpent.toLocaleString()}</div>
+              </div>
+              <div style="background:var(--bg-main);padding:8px;border-radius:8px;text-align:center;">
+                <div style="font-size:0.7rem;color:var(--text-light);">กระดุมรวม</div>
+                <div style="font-weight:600;color:var(--secondary);">${totalEchoes.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+              <button class="btn btn-sm ${u.banned?'btn-secondary':'btn-outline'}" style="${u.banned?'':'color:#e53e3e;border-color:#e53e3e;'}" onclick="event.stopPropagation();App._banUser(${u.id},${!u.banned})">${u.banned?'🟢 ปลดแบน':'🔴 แบนผู้ใช้'}</button>
+              <button class="btn btn-sm btn-outline" style="color:#e53e3e;border-color:#e53e3e;" onclick="event.stopPropagation();App._deleteUser(${u.id})">🗑️ ลบแอคเคาท์</button>
+            </div>
+
+            <div style="padding:12px;background:var(--bg-main);border-radius:8px;margin-bottom:14px;">
+              <label style="font-size:0.8rem;font-weight:600;">🔑 เปลี่ยนรหัสผ่าน</label>
+              <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+                <input class="form-input" type="text" id="userNewPass${u.id}" placeholder="รหัสผ่านใหม่" style="padding:8px;flex:1;" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();App._changeUserPass(${u.id})">💾 เปลี่ยน</button>
+              </div>
+            </div>
+
+            ${uo.length>0?`<div style="border-top:1px dashed var(--border-color);padding-top:12px;">
+              <h4 style="margin-bottom:10px;">📋 ประวัติออเดอร์ทั้งหมด (${uo.length} รายการ)</h4>
+              <div style="max-height:400px;overflow-y:auto;">
+                ${uo.slice().reverse().map(o=>`<div style="padding:8px 10px;border:1px solid var(--border-color);border-radius:8px;margin-bottom:6px;font-size:0.8rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                      <span class="status-badge status-${o.status}" style="font-size:0.7rem;">${o.status==='waiting'?'⏳ รอ':o.status==='processing'?'🔄 ทำ':'✅ เสร็จ'}</span>
+                      <strong style="margin-left:6px;">#${o.queueNumber||'-'}</strong>
+                      <span style="margin-left:6px;color:var(--text-light);">${new Date(o.createdAt).toLocaleString('th-TH')}</span>
+                    </div>
+                    <strong style="color:var(--primary);">฿${(o.totalPrice||0).toLocaleString()}</strong>
+                  </div>
+                  <div style="margin-top:4px;color:var(--text-light);">${(o.items||[]).map(i=>'${i.isSkin?"✨":"💎"}'+i.name+(i.qty>1?' x'+i.qty:'')).join(', ')}</div>
+                </div>`).join('')}
+              </div>
+            </div>`:''}</div></div>`;}).join(''):'<p style="color:var(--text-light);">ยังไม่มีผู้ใช้สมัครสมาชิก</p>'}</div>`;
+  },
   _changeUserPass(userId){const input=document.getElementById(`userNewPass${userId}`);const newPass=input?.value?.trim();if(!newPass||newPass.length<4){this.showToast('❌ รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร','error');return;}const users=Store.getUsers();const i=users.findIndex(u=>u.id===userId);if(i!==-1){users[i].password=newPass;Store.setUsers(users);this.showToast('✅ เปลี่ยนรหัสผ่านสำเร็จ!');input.value='';}},
+  _deleteUser(userId){if(!confirm('⚠️ ต้องการลบแอคเคาท์นี้จริงหรือไม่?\n\nข้อมูลผู้ใช้จะถูกลบถาวร!')){return;}const users=Store.getUsers().filter(u=>u.id!==userId);Store.setUsers(users);this.showToast('🗑️ ลบแอคเคาท์แล้ว!');this.renderAdmin();},
   _banUser(userId,ban){Store.banUser(userId,ban);this.showToast(ban?'🔴 แบนแล้ว':'🟢 ปลดแบน');this.renderAdmin();},
 
   _adminChatbot(ac){const qa=Store.getChatbot();ac.innerHTML=`<div class="card"><h3 style="margin-bottom:16px;">🤖 Chatbot</h3>${qa.map((q,i)=>`<div style="padding:8px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;"><div style="font-size:0.8rem;color:var(--text-light);">Keywords: ${q.keywords.join(', ')}</div><div style="font-size:0.85rem;margin-top:4px;">${q.answer.substring(0,60)}...</div></div>`).join('')}<div style="margin-top:12px;"><div class="form-group"><input class="form-input" id="newQAKeys" placeholder="Keywords (คั่นด้วย ,)"></div><div class="form-group"><textarea class="form-textarea" id="newQAAnswer" rows="2" placeholder="คำตอบ"></textarea></div><button class="btn btn-secondary" onclick="App._addChatbotQA()">➕ เพิ่ม</button></div></div>`;},
