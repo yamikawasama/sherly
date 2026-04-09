@@ -24,15 +24,21 @@
   pointer-events: none;
 }
 
-/* Bunny Head */
+/* Bunny Head / Custom Image */
 .bunny-loader {
   position: relative;
-  width: 120px;
-  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: bunnyBounce 1s ease-in-out infinite;
 }
 
 @keyframes bunnyBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-15px); }
 }
