@@ -92,6 +92,7 @@ const App = {
     const orderBanner=Store.getOrderBanner();const obSize=Store.getOrderBannerSize();
     c.innerHTML=`${orderBanner?`<div class="promo-banner animate-fade-in-up" style="margin-bottom:20px;max-height:${Math.round(180*(obSize/100))}px;min-height:${Math.round(80*(obSize/100))}px;"><img src="${orderBanner}" alt="" style="max-height:${Math.round(180*(obSize/100))}px;border-radius:var(--radius-lg);"></div>`:''}
       <div class="page-header animate-fade-in-up"><h1 class="page-title">📋 สั่งสินค้า</h1><p class="page-description">เลือกแพ็คเติมกระดุม Identity V</p></div>
+      ${(Store.getOrderNotes()||[]).map(n=>`<div class="note-box animate-fade-in-up" style="margin-bottom:10px;">${n.text}</div>`).join('')}
       <div class="animate-fade-in-up">
         <div class="form-group"><label class="form-label">🧮 เครื่องคำนวณ</label>
         <select class="form-select" id="calcSelector" onchange="App._calcMode=this.value;App._renderCalcPanel();" style="max-width:350px;">
@@ -103,7 +104,7 @@ const App = {
         <div id="calcPanelArea"></div>
       </div>
       <div class="discount-section animate-fade-in-up">
-        <h4>${Store.getDiscountLabelOfficial()}</h4>
+        <h4>🎫 บัตรส่วนลด Official</h4>
         <div class="form-checkbox" style="margin-bottom:12px;"><input type="checkbox" id="hasOfficialDisc" onchange="App.toggleOfficialDisc()"><span>มีบัตรส่วนลด Official</span></div>
         <div id="officialDiscOptions" style="display:none;">
           <div class="discount-row"><label>📌 10%</label><input class="discount-input" type="number" id="disc10Count" min="0" value="0" onchange="App.recalcCart()"> ใบ
@@ -111,7 +112,7 @@ const App = {
         </div>
       </div>
       <div class="discount-section animate-fade-in-up" id="skinDiscSection" style="display:none;">
-        <h4>${Store.getDiscountLabelSkin()}</h4>
+        <h4>✨ บัตรส่วนลดในเกม (สกิน)</h4>
         <div class="discount-row"><label><input type="radio" name="skinDisc" value="" checked onchange="App.recalcCart()"> ไม่ใช้</label>
           <label><input type="radio" name="skinDisc" value="50" onchange="App.recalcCart()"> 50%</label>
           <label><input type="radio" name="skinDisc" value="40" onchange="App.recalcCart()"> 40%</label>
@@ -138,7 +139,7 @@ const App = {
           <div style="font-size:2.5rem;margin-bottom:8px;">${s.image?`<img src="${s.image}" style="width:80px;height:80px;border-radius:12px;margin:0 auto;object-fit:cover;">`:s.emoji}</div>
           <h4>${s.name}</h4>
           <div style="font-size:0.85rem;color:var(--text-secondary);margin:6px 0;">
-            ${s.description?s.description:`ต้องใช้: ${typeof s.targetEcho==='number'?s.targetEcho.toLocaleString():s.targetEcho} กระดุม`}
+            ต้องใช้: ${typeof s.targetEcho==='string'&&s.targetEcho.includes('+')?s.targetEcho:Number(s.targetEcho||0).toLocaleString()} กระดุม
           </div>
           <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;">
             <button class="btn btn-sm ${s.normalEnabled?'btn-outline':'btn-disabled'}" ${s.normalEnabled?`onclick="App.addSkinPack(${s.id},'normal')"`:'disabled'}>ปกติ${s.normalEnabled?' ฿'+nmPrice.toLocaleString():'(งดรับ)'}</button>
@@ -152,19 +153,11 @@ const App = {
     const storeProducts=Store.getProducts();
     let packsMap={},totalEcho=0,topupEcho=0,pvP=0,nmP=0;
     
-    if(typeof targetEchoStr==='string' && (targetEchoStr.includes('+') || targetEchoStr.toLowerCase().includes('x') || targetEchoStr.includes('*'))){
-      const parts=targetEchoStr.toLowerCase().split('+').map(x=>x.trim()).filter(x=>x);
-      for(const part of parts){
-        let val=0, qty=1;
-        if(part.includes('x')){ const sp=part.split('x'); val=parseInt(sp[0]); qty=parseInt(sp[1])||1; }
-        else if(part.includes('*')){ const sp=part.split('*'); val=parseInt(sp[0]); qty=parseInt(sp[1])||1; }
-        else { val=parseInt(part); }
-        if(isNaN(val))continue;
+    if(typeof targetEchoStr==='string' && targetEchoStr.includes('+')){
+      const parts=targetEchoStr.split('+').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x));
+      for(const val of parts){
         const p=storeProducts.find(x=>x.totalEcho===val);
-        if(p){
-          if(!packsMap[p.id])packsMap[p.id]={pid:p.id,qty:0,totalEcho:p.totalEcho,echoes:p.echoes,pvP:p.privatePrice,nmP:p.normalPrice};
-          packsMap[p.id].qty+=qty;totalEcho+=p.totalEcho*qty;topupEcho+=p.echoes*qty;pvP+=p.privatePrice*qty;nmP+=p.normalPrice*qty;
-        }
+        if(p){if(!packsMap[p.id])packsMap[p.id]={pid:p.id,qty:0,totalEcho:p.totalEcho,echoes:p.echoes,pvP:p.privatePrice,nmP:p.normalPrice};packsMap[p.id].qty++;totalEcho+=p.totalEcho;topupEcho+=p.echoes;pvP+=p.privatePrice;nmP+=p.normalPrice;}
       }
     }else{
       let target=parseInt(targetEchoStr)||0;if(target<=0)return{packs:[],totalEcho:0,topupEcho:0,privatePrice:0,normalPrice:0,breakdownText:'0'};
@@ -282,10 +275,15 @@ const App = {
 
   addSkinPack(skinId,type){
     const s=Store.getSkinPacks().find(x=>x.id===skinId);if(!s)return;
-    const calc=this._autoCalcSkinPack(s.targetEcho);
+    // If admin set a custom formula for private price, use that
+    let calcPacks;
+    if(type==='private'&&s.customPrivateFormula){
+      const parsed=this._parseFormula(s.customPrivateFormula);
+      if(parsed&&parsed.packs.length>0)calcPacks=parsed.packs;
+    }
+    if(!calcPacks){const calc=this._autoCalcSkinPack(s.targetEcho);calcPacks=calc.packs;}
     const products=Store.getProducts();
-    // Add each individual button pack to the cart
-    calc.packs.forEach(pack=>{
+    calcPacks.forEach(pack=>{
       const product=products.find(p=>p.id===pack.pid);
       if(!product)return;
       const key=`${product.id}-${type}`;
@@ -293,13 +291,11 @@ const App = {
       let price=type==='private'?product.privatePrice:product.normalPrice;
       if(existing){
         existing.qty+=pack.qty;
-        // Recalculate volume discount
         if(product.volumeDiscount&&type==='private'){
           const vd=product.volumeDiscount.slice().sort((a,b)=>b.minQty-a.minQty).find(v=>existing.qty>=v.minQty);
           if(vd)existing.price=vd.price;
         }
       } else {
-        // Check volume discount for new entry
         if(product.volumeDiscount&&type==='private'){
           const vd=product.volumeDiscount.slice().sort((a,b)=>b.minQty-a.minQty).find(v=>pack.qty>=v.minQty);
           if(vd)price=vd.price;
@@ -397,7 +393,7 @@ const App = {
       <div class="note-box animate-fade-in-up">⚠️ <strong>หมายเหตุ</strong>: แอดเพื่อน 24 ชม. ก่อนถึงจะส่งได้ ไม่สามารถใช้บัตรส่วนลดได้ ไม่ได้ยอดเติม</div>
       <div class="grid-2 animate-fade-in-up" style="margin-top:20px;">${skins.map(s=>`<div class="card" style="text-align:center;">
         <div style="font-size:3rem;margin-bottom:8px;">${s.image?`<img src="${s.image}" style="width:80px;height:80px;border-radius:12px;margin:0 auto;object-fit:cover;">`:s.emoji}</div>
-        <h4>${s.name}</h4><div style="font-size:0.85rem;color:var(--text-secondary);margin:8px 0;">${s.description?s.description:`${typeof s.targetEcho==='number'?s.targetEcho.toLocaleString():s.targetEcho} กระดุม`}</div>
+        <h4>${s.name}</h4><div style="font-size:0.85rem;color:var(--text-secondary);margin:8px 0;">${s.targetEcho.toLocaleString()} กระดุม</div>
         <button class="btn btn-primary" onclick="App.orderGift(${s.id})">🎁 ส่ง ${(s.sendPrice||0).toLocaleString()} บาท</button>
       </div>`).join('')}</div>`;
   },
@@ -557,7 +553,7 @@ const App = {
       <div class="card"><h3 style="margin-bottom:16px;">🏦 ข้อมูลบัญชี</h3><div class="note-box info">🔒 ต้องใส่รหัสแอดมินเพื่อบันทึก</div>
       ${(bank.methods||[]).map((m,i)=>`<div style="padding:12px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;"><div style="font-weight:600;margin-bottom:8px;">${m.icon} ${m.name}</div><div class="grid-3" style="gap:8px;"><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ชื่อบัญชี</label><input class="form-input" id="bName${i}" value="${m.accountName}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">เลขบัญชี</label><input class="form-input" id="bNum${i}" value="${m.accountNumber}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ข้อความโน๊ต</label><input class="form-input" id="bNote${i}" value="${m.noteText}" style="padding:8px;"></div></div></div>`).join('')}
       <div class="form-group"><label class="form-label">รหัสแอดมิน (ยืนยัน)</label><input class="form-input" type="password" id="adBankPassConfirm" placeholder="ใส่รหัสแอดมิน"></div>
-      <button class="btn btn-primary" onclick="App._saveBankInfo()">💾 บันทึกส่วนบัญชี</button></div>${this._renderReceiptNotes()}`;
+      <button class="btn btn-primary" onclick="App._saveBankInfo()">💾 บันทึกส่วนบัญชี</button></div>${this._renderReceiptNotes()}${this._renderOrderNotes()}`;
   },
   _storeUpload(event,key){
     const file=event.target.files[0];if(!file)return;
@@ -632,27 +628,35 @@ const App = {
   },
   _saveBankInfo(){const pass=document.getElementById('adBankPassConfirm')?.value;if(pass!==Store.getAdminPass()){this.showToast('❌ รหัสไม่ถูกต้อง','error');return;}const bank=Store.getBank();(bank.methods||[]).forEach((m,i)=>{m.accountName=document.getElementById(`bName${i}`)?.value||m.accountName;m.accountNumber=document.getElementById(`bNum${i}`)?.value||m.accountNumber;m.noteText=document.getElementById(`bNote${i}`)?.value||m.noteText;});Store.setBank(bank);this.showToast('✅ บันทึกบัญชีเรียบร้อย!');},
   _renderReceiptNotes(){
-    return`<div class="card" style="margin-top:20px;"><h3 style="margin-bottom:16px;">⚙️ ตั้งค่าข้อความอื่นๆ</h3>
+    return`<div class="card" style="margin-top:20px;"><h3 style="margin-bottom:16px;">🧾 ข้อความใบเสร็จ</h3>
       <div class="note-box info" style="margin-bottom:12px;">ข้อความ "ขอบคุณที่ใช้บริการ" ในใบเสร็จแต่ละประเภท แก้ไขได้ค่ะ</div>
       <div class="form-group"><label class="form-label">💎 ใบเสร็จเติม</label><input class="form-input" id="receiptNoteTopup" value="${Store.getReceiptNote('topup')}"></div>
       <div class="form-group"><label class="form-label">🎁 ใบเสร็จส่ง</label><input class="form-input" id="receiptNoteSend" value="${Store.getReceiptNote('send')}"></div>
       <div class="form-group"><label class="form-label">🎮 ใบเสร็จเช่า</label><input class="form-input" id="receiptNoteRental" value="${Store.getReceiptNote('rental')}"></div>
-      
-      <div style="margin-top:24px;border-top:1px solid var(--border-color);padding-top:16px;">
-        <h4 style="margin-bottom:12px;">🏷️ ข้อความบัตรส่วนลด (หน้าสั่งสินค้า)</h4>
-        <div class="form-group"><label class="form-label">🎟️ ป้ายบัตร Official</label><input class="form-input" id="dlOfficial" value="${Store.getDiscountLabelOfficial()}"></div>
-        <div class="form-group"><label class="form-label">✨ ป้ายบัตรในเกม (สกิน)</label><input class="form-input" id="dlSkin" value="${Store.getDiscountLabelSkin()}"></div>
-      </div>
-      <button class="btn btn-primary" onclick="App._saveReceiptNotes()">💾 บันทึกข้อความการตั้งค่า</button></div>`;
+      <button class="btn btn-primary" onclick="App._saveReceiptNotes()">💾 บันทึกข้อความใบเสร็จ</button></div>`;
   },
   _saveReceiptNotes(){
     Store.setReceiptNote('topup',document.getElementById('receiptNoteTopup')?.value||'');
     Store.setReceiptNote('send',document.getElementById('receiptNoteSend')?.value||'');
     Store.setReceiptNote('rental',document.getElementById('receiptNoteRental')?.value||'');
-    Store.setDiscountLabelOfficial(document.getElementById('dlOfficial')?.value||'🎫 บัตรส่วนลด Official');
-    Store.setDiscountLabelSkin(document.getElementById('dlSkin')?.value||'✨ บัตรส่วนลดในเกม (สกิน)');
-    this.showToast('✅ บันทึกข้อความการตั้งค่าเรียบร้อย!');
+    this.showToast('✅ บันทึกข้อความใบเสร็จ!');
   },
+  _renderOrderNotes(){
+    const notes=Store.getOrderNotes();
+    return`<div class="card" style="margin-top:20px;"><h3 style="margin-bottom:16px;">📝 กล่องข้อความหน้าสั่งสินค้า</h3>
+      <div class="note-box info" style="margin-bottom:12px;">ข้อความเหล่านี้จะแสดงที่หน้าสั่งสินค้าให้ลูกค้าอ่านก่อนสั่งซื้อค่ะ</div>
+      ${notes.map((n,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+        <textarea class="form-textarea" id="orderNote${i}" rows="2" style="flex:1;font-size:0.85rem;">${n.text||''}</textarea>
+        <button class="btn-copy" style="color:#e53e3e;font-size:1.2rem;" onclick="App._deleteOrderNote(${i})" title="ลบ">🗑️</button>
+      </div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary" onclick="App._saveOrderNotes()">💾 บันทึก</button>
+        <button class="btn btn-secondary" onclick="App._addOrderNote()">➕ เพิ่มกล่อง</button>
+      </div></div>`;
+  },
+  _addOrderNote(){const n=Store.getOrderNotes();n.push({text:'ข้อความใหม่'});Store.setOrderNotes(n);this.renderAdmin();},
+  _deleteOrderNote(i){const n=Store.getOrderNotes();n.splice(i,1);Store.setOrderNotes(n);this.renderAdmin();},
+  _saveOrderNotes(){const n=Store.getOrderNotes();n.forEach((note,i)=>{note.text=document.getElementById(`orderNote${i}`)?.value||'';});Store.setOrderNotes(n);this.showToast('✅ บันทึกกล่องข้อความ!');},
 
   _adminButtons(ac){
     const btns=Store.getButtons();
@@ -693,7 +697,7 @@ const App = {
       <div class="note-box info">ใส่จำนวนกระดุมที่ต้องใช้ ระบบจะคำนวณแพ็ค/ราคาให้อัตโนมัติ! หรือตั้งราคาเองได้</div>
       ${skins.map((s,i)=>{const calc=this._autoCalcSkinPack(s.targetEcho||0);
         return`<div style="padding:12px;border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong>${s.emoji} ${s.name}</strong><div style="display:flex;gap:4px;align-items:center;"><button class="btn-copy" onclick="App._moveSkin(${i},-1)" ${i===0?'disabled style="opacity:0.3;"':''}>⬆️</button><button class="btn-copy" onclick="App._moveSkin(${i},1)" ${i===skins.length-1?'disabled style="opacity:0.3;"':''}>⬇️</button><span class="badge ${s.topupOnly?'badge-yellow':'badge-blue'}">${s.topupOnly?'เติมเท่านั้น':'เติม+ส่ง'}</span><span class="badge ${s.active?'badge-green':'badge-red'}">${s.active?'เปิด':'ปิด'}</span><button class="btn-copy" onclick="App._toggleSkinTopup(${i})">${s.topupOnly?'🎁':'💎'}</button><button class="btn-copy" onclick="App._toggleSkin(${i})">${s.active?'🔴':'🟢'}</button><button class="btn-copy" onclick="App._deleteSkin(${i})">🗑️</button></div></div>
-        <div class="grid-4" style="gap:8px;"><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ชื่อ</label><input class="form-input" id="sN${i}" value="${s.name}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">รายละเอียดใต้ชื่อ</label><input class="form-input" id="sD${i}" value="${s.description||''}" style="padding:8px;" placeholder="เช่น ต้องใช้: 3288 กระดุม"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">กระดุมที่ต้องใช้</label><input class="form-input" type="text" id="sTE${i}" value="${typeof s.targetEcho==='number'?s.targetEcho:(s.targetEcho||'')}" style="padding:8px;" placeholder="ต.ย. 726 หรือ 759+66"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ราคาส่ง (กำหนดเอง)</label><input class="form-input" type="number" id="sSP${i}" value="${s.sendPrice||''}" style="padding:8px;"></div></div>
+        <div class="grid-3" style="gap:8px;"><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ชื่อ</label><input class="form-input" id="sN${i}" value="${s.name}" style="padding:8px;"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">กระดุมที่ต้องใช้</label><input class="form-input" type="text" id="sTE${i}" value="${typeof s.targetEcho==='number'?s.targetEcho:(s.targetEcho||'')}" style="padding:8px;" placeholder="ต.ย. 726 หรือ 759+66"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label" style="font-size:0.75rem;">ราคาส่ง (กำหนดเอง)</label><input class="form-input" type="number" id="sSP${i}" value="${s.sendPrice||''}" style="padding:8px;"></div></div>
         <div style="margin-top:8px;background:var(--bg-primary);padding:10px;border-radius:8px;font-size:0.8rem;">
           <div>📦 สรุป: ${calc.breakdownText} = <strong>${calc.totalEcho}</strong> กระดุม</div>
           <div>📋 ยอดเติม: ${calc.topupEcho} กระดุม | 💰 พรีไว(อัตโนมัติ): <strong>฿${calc.privatePrice}</strong> | ปกติ(อัตโนมัติ): ฿${calc.normalPrice}</div>
@@ -710,7 +714,10 @@ const App = {
             </div>
             <div>
               <label class="form-checkbox" style="margin-bottom:4px;"><input type="checkbox" id="sCPP${i}" ${s.customPrivatePrice?'checked':''} onchange="document.getElementById('skinPPInput${i}').style.display=this.checked?'block':'none'"><span style="font-size:0.8rem;">พรีไวตั้งราคาเอง</span></label>
-              <div id="skinPPInput${i}" style="display:${s.customPrivatePrice?'block':'none'};margin-top:4px;"><input class="form-input" type="number" id="sPP${i}" value="${s.customPrivatePrice||''}" placeholder="ราคาพรีไว (฿)" style="padding:6px;width:120px;font-size:0.85rem;"></div>
+              <div id="skinPPInput${i}" style="display:${s.customPrivatePrice?'block':'none'};margin-top:4px;">
+                <input class="form-input" type="text" id="sPP${i}" value="${s.customPrivateFormula||s.customPrivatePrice||''}" placeholder="สูตร เช่น 759+66 หรือ 759×2" style="padding:6px;width:200px;font-size:0.85rem;" oninput="App._previewCustomFormula(${i},this.value)">
+                <div id="formulaPreview${i}" style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -727,7 +734,32 @@ const App = {
   _moveRental(idx,dir){const r=Store.getRentals();const ni=idx+dir;if(ni<0||ni>=r.length)return;[r[idx],r[ni]]=[r[ni],r[idx]];Store.setRentals(r);this.renderAdmin();},
   _moveFAQ(idx,dir){const f=Store.getFAQ();const ni=idx+dir;if(ni<0||ni>=f.length)return;[f[idx],f[ni]]=[f[ni],f[idx]];Store.setFAQ(f);this.renderAdmin();},
   _movePromo(idx,dir){const p=Store.getPromos();const ni=idx+dir;if(ni<0||ni>=p.length)return;[p[idx],p[ni]]=[p[ni],p[idx]];Store.setPromos(p);this.renderAdmin();},
-  _saveSkins(){const skins=Store.getSkinPacks();skins.forEach((s,i)=>{s.name=document.getElementById(`sN${i}`)?.value||s.name;s.description=document.getElementById(`sD${i}`)?.value||'';s.targetEcho=document.getElementById(`sTE${i}`)?.value||s.targetEcho;s.sendPrice=parseInt(document.getElementById(`sSP${i}`)?.value)||null;s.normalEnabled=document.getElementById(`sNE${i}`)?.checked||false;const hasCNP=document.getElementById(`sCNP${i}`)?.checked;s.customNormalPrice=hasCNP?parseInt(document.getElementById(`sNP${i}`)?.value)||null:null;const hasCPP=document.getElementById(`sCPP${i}`)?.checked;s.customPrivatePrice=hasCPP?parseInt(document.getElementById(`sPP${i}`)?.value)||null:null;if(this._uploadedImages[`skin${i}`])s.image=this._uploadedImages[`skin${i}`];});Store.setSkinPacks(skins);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
+  _parseFormula(formula){
+    if(!formula)return null;
+    const str=String(formula).replace(/×/g,'*').replace(/x/gi,'*').replace(/\s/g,'');
+    const products=Store.getProducts();
+    // Expand multiplications like 759*2 → 759+759
+    let expanded=str;
+    expanded=expanded.replace(/(\d+)\*(\d+)/g,(m,a,b)=>{return Array(parseInt(b)).fill(a).join('+');});
+    const parts=expanded.split('+').map(x=>parseInt(x)).filter(x=>!isNaN(x)&&x>0);
+    if(parts.length===0)return null;
+    let totalPrice=0,totalEcho=0,topupEcho=0,items=[];
+    for(const val of parts){
+      const p=products.find(x=>x.totalEcho===val);
+      if(p){totalPrice+=p.privatePrice;totalEcho+=p.totalEcho;topupEcho+=p.echoes;items.push({pid:p.id,totalEcho:p.totalEcho,echoes:p.echoes,price:p.privatePrice,qty:1});}
+    }
+    // Merge same items
+    const merged={};items.forEach(it=>{if(!merged[it.pid])merged[it.pid]={...it};else merged[it.pid].qty++;});
+    const packs=Object.values(merged);
+    return{packs,totalPrice,totalEcho,topupEcho,formula:str,breakdownText:packs.map(p=>p.qty>1?`${p.totalEcho}×${p.qty}`:`${p.totalEcho}`).join('+')};
+  },
+  _previewCustomFormula(i,val){
+    const el=document.getElementById(`formulaPreview${i}`);if(!el)return;
+    const result=this._parseFormula(val);
+    if(!result||result.packs.length===0){el.innerHTML='';return;}
+    el.innerHTML=`📦 ${result.breakdownText} = <strong>${result.totalEcho}</strong> กระดุม (เติม ${result.topupEcho}) | 💰 <strong>฿${result.totalPrice}</strong>`;
+  },
+  _saveSkins(){const skins=Store.getSkinPacks();skins.forEach((s,i)=>{s.name=document.getElementById(`sN${i}`)?.value||s.name;s.targetEcho=document.getElementById(`sTE${i}`)?.value||s.targetEcho;s.sendPrice=parseInt(document.getElementById(`sSP${i}`)?.value)||null;s.normalEnabled=document.getElementById(`sNE${i}`)?.checked||false;const hasCNP=document.getElementById(`sCNP${i}`)?.checked;s.customNormalPrice=hasCNP?parseInt(document.getElementById(`sNP${i}`)?.value)||null:null;const hasCPP=document.getElementById(`sCPP${i}`)?.checked;if(hasCPP){const formulaVal=document.getElementById(`sPP${i}`)?.value||'';s.customPrivateFormula=formulaVal;const parsed=this._parseFormula(formulaVal);s.customPrivatePrice=parsed?parsed.totalPrice:null;}else{s.customPrivatePrice=null;s.customPrivateFormula=null;}if(this._uploadedImages[`skin${i}`])s.image=this._uploadedImages[`skin${i}`];});Store.setSkinPacks(skins);this._uploadedImages={};this.showToast('✅ บันทึก!');this.renderAdmin();},
   _addSkinPack(){const skins=Store.getSkinPacks();skins.push({id:Date.now(),name:'แพ็คใหม่',targetEcho:0,sendPrice:0,normalEnabled:false,cost:0,image:'',emoji:'🎁',active:true,customNormalPrice:null,customPrivatePrice:null,topupOnly:false});Store.setSkinPacks(skins);this.showToast('✅ เพิ่มแพ็คสกิน!');this.renderAdmin();},
 
   _adminQueue(ac){const o=Store.getOrders();const topup=o.filter(x=>x.type==='topup');const send=o.filter(x=>x.type==='send');const bookings=Store.getBookings();const rentals=Store.getRentals();

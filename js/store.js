@@ -64,8 +64,7 @@ const Store = {
     receipt_note_topup: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
     receipt_note_send: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
     receipt_note_rental: 'ขอบคุณที่ใช้บริการค่ะ 🐰💕',
-    discount_label_official: '🎫 บัตรส่วนลด Official',
-    discount_label_skin: '✨ บัตรส่วนลดในเกม (สกิน)'
+    order_notes: []
   },
 
   _getDefault(key){
@@ -135,7 +134,7 @@ const Store = {
       'order_banner_size','gift_banner_size','loading_img_size',
       'banner_size','chatbot_bottom',
       'receipt_note_topup','receipt_note_send','receipt_note_rental',
-      'discount_label_official','discount_label_skin'];
+      'order_notes'];
     simplePaths.forEach(p => this._listen(p));
 
     // Auto-refresh UI function
@@ -187,12 +186,6 @@ const Store = {
 
   getReceiptNote(type){ return this._cache[`receipt_note_${type}`] || 'ขอบคุณที่ใช้บริการค่ะ 🐰💕'; },
   setReceiptNote(type, note){ this._fbSet(`receipt_note_${type}`, note); },
-
-  getDiscountLabelOfficial(){ return this._cache['discount_label_official'] || '🎫 บัตรส่วนลด Official'; },
-  setDiscountLabelOfficial(t){ this._fbSet('discount_label_official', t); },
-
-  getDiscountLabelSkin(){ return this._cache['discount_label_skin'] || '✨ บัตรส่วนลดในเกม (สกิน)'; },
-  setDiscountLabelSkin(t){ this._fbSet('discount_label_skin', t); },
 
   getOrders(){ return this._cache['orders'] || []; },
   setOrders(o){ this._fbSet('orders', o); },
@@ -248,6 +241,9 @@ const Store = {
   getAdminPass(){ return this._cache['admin_pass'] || '4t.4{@],EzUkq~L_PKBxJEsJsMYLOVEISKB@LC+5z%Q'; },
   setAdminUser(u){ this._fbSet('admin_user', u); },
   setAdminPass(p){ this._fbSet('admin_pass', p); },
+
+  getOrderNotes(){ return this._cache['order_notes'] || []; },
+  setOrderNotes(n){ this._fbSet('order_notes', n); },
 
   getButtons(){ return this._cache['buttons'] || DEFAULT_BUTTONS; },
   setButtons(b){ this._fbSet('buttons', b); },
