@@ -329,10 +329,10 @@ const Store = {
 };
 
 const DEFAULT_PRODUCTS=[
-  {id:1,name:'66 กระดุม',echoes:60,bonus:6,totalEcho:66,privatePrice:29,normalPrice:25,normalEnabled:false,cost:20,image:'',emoji:'💎'},
-  {id:2,name:'203 กระดุม',echoes:185,bonus:18,totalEcho:203,privatePrice:90,normalPrice:80,normalEnabled:false,cost:65,image:'',emoji:'💎'},
-  {id:3,name:'335 กระดุม',echoes:305,bonus:30,totalEcho:335,privatePrice:145,normalPrice:130,normalEnabled:false,cost:110,image:'',emoji:'💎'},
-  {id:4,name:'759 กระดุม',echoes:690,bonus:69,totalEcho:759,privatePrice:285,normalPrice:260,normalEnabled:false,cost:220,image:'',emoji:'💎',
+  {id:1,name:'66 กระดุม',echoes:60,bonus:6,totalEcho:66,privatePrice:29,normalPrice:25,normalEnabled:false,cost:20,image:'',emoji:'<img src="assets/images/MiniEcho.webp" alt="echo" style="width:22px;height:22px;display:inline-block;vertical-align:-4px;margin-right:4px;">'},
+  {id:2,name:'203 กระดุม',echoes:185,bonus:18,totalEcho:203,privatePrice:90,normalPrice:80,normalEnabled:false,cost:65,image:'',emoji:'<img src="assets/images/MiniEcho.webp" alt="echo" style="width:22px;height:22px;display:inline-block;vertical-align:-4px;margin-right:4px;">'},
+  {id:3,name:'335 กระดุม',echoes:305,bonus:30,totalEcho:335,privatePrice:145,normalPrice:130,normalEnabled:false,cost:110,image:'',emoji:'<img src="assets/images/MiniEcho.webp" alt="echo" style="width:22px;height:22px;display:inline-block;vertical-align:-4px;margin-right:4px;">'},
+  {id:4,name:'759 กระดุม',echoes:690,bonus:69,totalEcho:759,privatePrice:285,normalPrice:260,normalEnabled:false,cost:220,image:'',emoji:'<img src="assets/images/MiniEcho.webp" alt="echo" style="width:22px;height:22px;display:inline-block;vertical-align:-4px;margin-right:4px;">',
     volumeDiscount:[{minQty:20,price:283},{minQty:30,price:280}]},
 ];
 
@@ -371,7 +371,7 @@ const DEFAULT_BANK={methods:[
 const DEFAULT_CHATBOT=[
   {keywords:['สวัสดี','หวัดดี','hi','hello'],answer:'สวัสดีค่ะ~ 🐰 ยินดีต้อนรับสู่ร้าน Sherly Panty! มีอะไรให้ช่วยคะ?'},
   {keywords:['ราคา','เท่าไหร่','กี่บาท'],answer:'สามารถดูราคาสินค้าได้ที่หน้า \"สั่งสินค้า\" ค่ะ 💕'},
-  {keywords:['กระดุม','echo'],answer:'💎 แพ็คกระดุม:\n• 66 กระดุม = พรีไว 29฿\n• 203 กระดุม = พรีไว 90฿\n• 335 กระดุม = พรีไว 145฿\n• 759 กระดุม = พรีไว 285฿'},
+  {keywords:['กระดุม','echo'],answer:'<img src="assets/images/MiniEcho.webp" alt="echo" style="width:22px;height:22px;display:inline-block;vertical-align:-4px;margin-right:4px;"> แพ็คกระดุม:\n• 66 กระดุม = พรีไว 29฿\n• 203 กระดุม = พรีไว 90฿\n• 335 กระดุม = พรีไว 145฿\n• 759 กระดุม = พรีไว 285฿'},
   {keywords:['สกิน','skin'],answer:'✨ สกินดูได้ที่หน้า \"สั่งสินค้า\" หรือ \"ส่งสกิน\" ค่ะ'},
   {keywords:['ส่วนลด','โปร'],answer:'🎉 ดูโปรทั้งหมดที่หน้าแรกค่ะ'},
   {keywords:['ติดต่อ','แอดมิน','facebook'],answer:'📞 ติดต่อ Facebook: Sherly Panty ค่ะ 💕'},
