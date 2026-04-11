@@ -6,8 +6,8 @@
 :root{--primary:#F2A7B3;--primary-light:#FFD1DC;--primary-dark:#E0889A;--secondary:#B8E6C8;--secondary-light:#D4F5E0;--secondary-dark:#8FD4A8;--bg-primary:#FFF5F7;--bg-secondary:#FFFFFF;--bg-card:rgba(255,255,255,0.85);--bg-glass:rgba(255,255,255,0.6);--bg-sidebar:linear-gradient(180deg,#FFD1DC 0%,#B8E6C8 100%);--bg-hero:linear-gradient(135deg,#FFD1DC 0%,#FFFFFF 50%,#D4F5E0 100%);--text-primary:#4A3B3F;--text-secondary:#7A6B6F;--text-light:#A89A9E;--text-on-primary:#FFFFFF;--border-color:rgba(242,167,179,0.3);--shadow-sm:0 2px 8px rgba(242,167,179,0.15);--shadow-md:0 4px 16px rgba(242,167,179,0.2);--shadow-lg:0 8px 32px rgba(242,167,179,0.25);--shadow-glow:0 0 20px rgba(242,167,179,0.3);--radius-sm:8px;--radius-md:12px;--radius-lg:20px;--radius-xl:28px;--radius-full:9999px;--font-th:'Kanit',sans-serif;--font-en:'Quicksand',sans-serif;--transition-fast:0.2s ease;--transition-normal:0.3s ease;--sidebar-width:260px;}
 [data-theme="dark"]{--primary:#F2A7B3;--primary-light:#FFB8C6;--primary-dark:#D4748A;--secondary:#7ECDA0;--secondary-light:#A0E6BC;--secondary-dark:#5CB882;--bg-primary:#1A1520;--bg-secondary:#241E2C;--bg-card:rgba(36,30,44,0.9);--bg-glass:rgba(36,30,44,0.7);--bg-sidebar:linear-gradient(180deg,#2A1F35 0%,#1A2A22 100%);--bg-hero:linear-gradient(135deg,#2A1F35 0%,#1A1520 50%,#1A2A22 100%);--text-primary:#F0E8EC;--text-secondary:#C0B4B8;--text-light:#8A7E82;--border-color:rgba(242,167,179,0.2);--shadow-sm:0 2px 8px rgba(0,0,0,0.3);--shadow-md:0 4px 16px rgba(0,0,0,0.4);--shadow-lg:0 8px 32px rgba(0,0,0,0.5);--shadow-glow:0 0 20px rgba(242,167,179,0.15);}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-behavior:smooth;font-size:16px;width:100%;overflow-x:hidden;}
-body{font-family:var(--font-th);background:var(--bg-primary);color:var(--text-primary);min-height:100vh;overflow-x:hidden;transition:background var(--transition-normal),color var(--transition-normal);}
+html{scroll-behavior:smooth;font-size:16px;}
+body{font-family:var(--font-th);background:var(--bg-primary);color:var(--text-primary);min-height:100vh;width:100vw;max-width:100%;overflow-x:hidden;transition:background var(--transition-normal),color var(--transition-normal);}
 h1,h2,h3,h4,h5,h6{font-family:var(--font-th);font-weight:600;line-height:1.3;}
 a{text-decoration:none;color:inherit;}img{max-width:100%;display:block;}
 button{cursor:pointer;border:none;outline:none;font-family:var(--font-th);}
@@ -312,18 +312,23 @@ input,select,textarea{font-family:var(--font-th);outline:none;}
 .mobile-toggle{display:none;position:fixed;top:12px;left:12px;z-index:150;width:44px;height:44px;border-radius:var(--radius-md);background:var(--bg-card);border:1px solid var(--border-color);box-shadow:var(--shadow-md);font-size:1.2rem;color:var(--text-primary);}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:90;}.sidebar-overlay.active{display:block;}
 
-@media(max-width:1024px){.grid-4{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:768px){
+@media(max-width:1024px){
   .mobile-toggle{display:flex;align-items:center;justify-content:center;}
   .sidebar{transform:translateX(-100%);}.sidebar.open{transform:translateX(0);}
-  .main-content{margin-left:0;}.page-container{padding:16px;}
-  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .main-content{margin-left:0;}.page-container{padding:16px;max-width:100%;}
+  .grid-2{grid-template-columns:1fr;}
+  .grid-3{grid-template-columns:repeat(2,1fr);}
+  .grid-4{grid-template-columns:repeat(2,1fr);}
   .page-title{font-size:1.4rem;}
-  .chatbot-window{width:calc(100vw - 32px);right:-8px;}
+  .chatbot-window{width:calc(100vw - 32px);max-width:340px;right:-8px;}
   .rental-calendar{grid-template-columns:repeat(4,1fr);}
   .modal{padding:20px;width:95%;}
-  .service-grid{grid-template-columns:repeat(2,1fr);gap:10px;}.service-btn{padding:16px 12px;}
+  .service-grid{grid-template-columns:repeat(2,1fr);gap:10px;max-width:100%;}.service-btn{padding:16px 12px;min-width:0;max-width:100%;}
   .status-row{flex-direction:row;justify-content:center;flex-wrap:wrap;gap:8px;}
+}
+@media(max-width:576px){
+  .grid-3,.grid-4{grid-template-columns:1fr;}
+  .status-row .mini-queue{font-size:0.75rem;padding:6px 10px;}
 }
 
 /* Mobile Preview Mode (admin) - forces mobile layout across entire site */
