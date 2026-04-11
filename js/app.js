@@ -29,13 +29,13 @@ const App = {
   applyChatbotSize(){const size=Store.getChatbotSize();const trigger=document.querySelector('.chatbot-trigger');if(trigger){trigger.style.width=size+'px';trigger.style.height=Math.round(size*1.4)+'px';}},
   applyMascotSize(){const size=Store.getMascotSize();const logo=document.getElementById('sidebarLogo');if(logo){logo.style.width=size+'px';logo.style.height=size+'px';}},
   applyChatbotBottom(){const bottom=Store.getChatbotBottom();const container=document.querySelector('.chatbot-container');if(container)container.style.bottom=bottom+'px';},
-  applyLoadingImg(){const imgUrl=Store.getLoadingImg();const size=Store.getLoadingImgSize();const l=document.getElementById('loadingImgContainer')||document.querySelector('.bunny-loader');if(l){if(imgUrl){l.innerHTML=`<img src="${imgUrl}" style="max-width:${Math.round(200*(size/100))}px;max-height:${Math.round(200*(size/100))}px;object-fit:contain;border-radius:12px;">`;l.style.width='auto';l.style.height='auto';}else{l.innerHTML=`<div style="font-size:4rem;">🐰</div>`;}}},
+  applyLoadingImg(){const imgUrl=Store.getLoadingImg();const size=Store.getLoadingImgSize();const l=document.getElementById('loadingImgContainer')||document.querySelector('.bunny-loader');if(l){if(imgUrl){l.innerHTML=`<img src="${imgUrl}" style="max-width:${Math.round(200*(size/100))}px;max-height:${Math.round(200*(size/100))}px;object-fit:contain;border-radius:12px;">`;l.style.width='auto';l.style.height='auto';}else{l.innerHTML=`<div style="font-size:4rem;">🍥</div>`;}}},
   openLightbox(src){const lb=document.getElementById('lightbox');const img=document.getElementById('lightboxImg');if(lb&&img){img.src=src;lb.classList.add('active');}},
 
   // ========== NAV ==========
   setupNav(){document.querySelectorAll('.nav-item[data-page]').forEach(item=>{item.addEventListener('click',e=>{e.preventDefault();window.location.hash=item.dataset.page;});});},
   navigate(page){
-    if((page==='order'||page==='gift'||page==='myorders')&&!Store.getCurrentUser()&&!this.adminLoggedIn){this.showAuthModal('login');this.showToast('กรุณาเข้าสู่ระบบก่อนค่ะ 🐰','warning');return;}
+    if((page==='order'||page==='gift'||page==='myorders')&&!Store.getCurrentUser()&&!this.adminLoggedIn){this.showAuthModal('login');this.showToast('❌️กรุณาเข้าสู่ระบบก่อนค่ะ🍡 ','warning');return;}
     if(page==='admin'&&!this.adminLoggedIn){this.showAuthModal('login');this.showToast('กรุณาเข้าสู่ระบบแอดมินค่ะ','warning');return;}
     this.currentPage=page;
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -85,8 +85,8 @@ const App = {
       <div class="promo-banner" style="max-height:${Math.round(220*(Store.getBannerSize()/100))}px;min-height:${Math.round(120*(Store.getBannerSize()/100))}px;">${banner?`<img src="${banner}" alt="โปรโมชั่น" style="max-height:${Math.round(220*(Store.getBannerSize()/100))}px;">`:'<div style="font-size:3rem;padding:30px;">🐰✨🎮</div>'}</div>
       <div class="shop-header"><div class="shop-name">୧ ‧:₊˚꒰ 𝐒𝐡𝐞𝐫ƴ𝐥 𝐏𝐚ñ𝐭ƴ ꒱ ⋅ ☆ ˖°</div><div class="shop-tag">#IDVMarket103 ꒱ ˎˊ˗ รับเติม/ส่งของขวัญ Identity V แบบ Official</div></div>
       <div class="status-row">
-        <div class="shop-status ${status.open?'open':'closed'}" style="font-size:0.9rem;padding:8px 20px;"><span class="status-dot"></span>${status.open?'🟢 เปิดให้บริการค่ะ~':'🔴 ปิดร้านชั่วคราวค่ะ'}</div>
-        <div class="mini-queue">📋 คิวเติม: <strong>${topupQ.length}</strong></div>
+        <div class="shop-status ${status.open?'open':'closed'}" style="font-size:0.9rem;padding:8px 20px;"><span class="status-dot"></span>${status.open?'🍥 เปิดให้บริการค่ะ~':'🔴 ปิดร้านชั่วคราวค่ะ'}</div>
+        <div class="mini-queue">🎀 คิวเติม: <strong>${topupQ.length}</strong></div>
         <div class="mini-queue">🎁 คิวส่ง: <strong>${sendQ.length}</strong></div>
       </div>
       <div class="service-grid">${btns.map(b=>`<div class="service-btn" onclick="${b.action==='link'?`window.open('${b.target}','_blank')`:`App.navigate('${b.target}')`}">
@@ -153,15 +153,15 @@ const App = {
       <div class="animate-fade-in-up">
         <div class="form-group"><label class="form-label">🧮 เครื่องคำนวณ</label>
         <select class="form-select" id="calcSelector" onchange="App._calcMode=this.value;App._renderCalcPanel();" style="max-width:350px;">
-          <option value="budget">💰 มีงบเท่านี้ได้กี่กระดุม?</option>
+          <option value="budget">🌸 มีงบเท่านี้ได้กี่กระดุม?</option>
           <option value="marble">🔮 เติมลูกแก้ว</option>
-          <option value="echo">🎯 ต้องการกระดุมเท่านี้กี่บาท?</option>
-          <option value="topup">📊 คำนวณราคายอดเติม</option>
+          <option value="echo">🍼 ต้องการกระดุมเท่านี้กี่บาท?</option>
+          <option value="topup">🍡 คำนวณราคายอดเติม</option>
         </select></div>
         <div id="calcPanelArea"></div>
       </div>
       <div class="discount-section animate-fade-in-up">
-        <h4>🎫 บัตรส่วนลด Official</h4>
+        <h4>🎀 บัตรส่วนลด Official</h4>
         <div class="form-checkbox" style="margin-bottom:12px;"><input type="checkbox" id="hasOfficialDisc" onchange="App.toggleOfficialDisc()"><span>มีบัตรส่วนลด Official</span></div>
         <div id="officialDiscOptions" style="display:none;">
           <div class="discount-row"><label>📌 10%</label><input class="discount-input" type="number" id="disc10Count" min="0" value="0" onchange="App.recalcCart()"> ใบ
@@ -169,7 +169,7 @@ const App = {
         </div>
       </div>
       <div class="discount-section animate-fade-in-up" id="skinDiscSection" style="display:none;">
-        <h4>✨ บัตรส่วนลดในเกม (สกิน)</h4>
+        <h4>🍥 บัตรส่วนลดในเกม (สกิน)</h4>
         <div class="discount-row"><label><input type="radio" name="skinDisc" value="" checked onchange="App.recalcCart()"> ไม่ใช้</label>
           <label><input type="radio" name="skinDisc" value="50" onchange="App.recalcCart()"> 50%</label>
           <label><input type="radio" name="skinDisc" value="40" onchange="App.recalcCart()"> 40%</label>
@@ -259,10 +259,10 @@ const App = {
 
   _renderCalcPanel(){
     const area=document.getElementById('calcPanelArea');if(!area)return;const m=this._calcMode;
-    if(m==='budget')area.innerHTML=`<div class="card"><h4>💰 มีงบเท่านี้ได้กี่กระดุม?</h4><div class="form-group" style="margin-top:12px;"><input class="form-input" type="number" id="budgetInput" placeholder="ใส่งบ (บาท)..." oninput="App.calcBudget()"></div><div id="budgetResult"></div></div>`;
+    if(m==='budget')area.innerHTML=`<div class="card"><h4>🌸 มีงบเท่านี้ได้กี่กระดุม?</h4><div class="form-group" style="margin-top:12px;"><input class="form-input" type="number" id="budgetInput" placeholder="ใส่งบ (บาท)..." oninput="App.calcBudget()"></div><div id="budgetResult"></div></div>`;
     else if(m==='marble')area.innerHTML=`<div class="card"><h4>🔮 เติมลูกแก้ว (1 ลูก = 96 กระดุม)</h4><div style="display:flex;align-items:center;gap:16px;margin-top:12px;"><input type="range" class="range-slider" id="marbleSlider" min="1" max="250" value="1" oninput="App.calcMarble()"><input class="form-input" type="number" id="marbleInput" min="1" max="250" value="1" style="width:80px;" oninput="App.calcMarbleFromInput()"><span style="font-weight:600;white-space:nowrap;" id="marbleLabel">1 ลูก</span></div><div id="marbleResult" style="margin-top:12px;"></div></div>`;
-    else if(m==='echo')area.innerHTML=`<div class="card"><h4>🎯 ต้องการกระดุมเท่านี้กี่บาท?</h4><div class="form-group" style="margin-top:12px;"><input class="form-input" type="number" id="echoNeedInput" placeholder="ใส่จำนวนกระดุม (รวมโบนัส)..." oninput="App.calcEchoNeed()"></div><div id="echoNeedResult"></div></div>`;
-    else area.innerHTML=`<div class="card"><h4>📊 คำนวณราคายอดเติม (ไม่รวมโบนัส)</h4><p style="font-size:0.8rem;color:var(--text-secondary);margin:4px 0 12px;">ใส่จำนวนกระดุมที่ต้องการเป็นยอดเติม (echoes ไม่รวมโบนัส)</p><div class="form-group"><input class="form-input" type="number" id="topupCalcInput" placeholder="ใส่ยอดเติมที่ต้องการ..." oninput="App.calcTopup()"></div><div id="topupCalcResult"></div></div>`;
+    else if(m==='echo')area.innerHTML=`<div class="card"><h4>🍼 ต้องการกระดุมเท่านี้กี่บาท?</h4><div class="form-group" style="margin-top:12px;"><input class="form-input" type="number" id="echoNeedInput" placeholder="ใส่จำนวนกระดุม (รวมโบนัส)..." oninput="App.calcEchoNeed()"></div><div id="echoNeedResult"></div></div>`;
+    else area.innerHTML=`<div class="card"><h4>🍡 คำนวณราคายอดเติม (ไม่รวมโบนัส)</h4><p style="font-size:0.8rem;color:var(--text-secondary);margin:4px 0 12px;">ใส่จำนวนกระดุมที่ต้องการเป็นยอดเติม (echoes ไม่รวมโบนัส)</p><div class="form-group"><input class="form-input" type="number" id="topupCalcInput" placeholder="ใส่ยอดเติมที่ต้องการ..." oninput="App.calcTopup()"></div><div id="topupCalcResult"></div></div>`;
   },
 
   _calcSummaryHTML(combo,extraRows=''){
@@ -312,7 +312,7 @@ const App = {
     return{packs,totalPrice,totalEcho,topupEcho};
   },
 
-  calcBudget(){const b=parseFloat(document.getElementById('budgetInput')?.value)||0;const r=document.getElementById('budgetResult');if(b<=0){r.innerHTML='';return;}const combo=this._calcOptimalPacks(null,b);r.innerHTML=this._calcSummaryHTML(combo,`<div class="summary-row" style="color:var(--primary);"><span>💰 งบ</span><span>${b.toLocaleString()} บาท</span></div>`);},
+  calcBudget(){const b=parseFloat(document.getElementById('budgetInput')?.value)||0;const r=document.getElementById('budgetResult');if(b<=0){r.innerHTML='';return;}const combo=this._calcOptimalPacks(null,b);r.innerHTML=this._calcSummaryHTML(combo,`<div class="summary-row" style="color:var(--primary);"><span>🌸 งบ</span><span>${b.toLocaleString()} บาท</span></div>`);},
 
   calcMarble(){const s=document.getElementById('marbleSlider');const i=document.getElementById('marbleInput');const l=document.getElementById('marbleLabel');const c=parseInt(s.value)||1;i.value=c;l.textContent=`${c} ลูก`;this._doMarbleCalc(c);},
   calcMarbleFromInput(){const i=document.getElementById('marbleInput');const s=document.getElementById('marbleSlider');const l=document.getElementById('marbleLabel');let c=parseInt(i.value)||1;if(c>250)c=250;if(c<1)c=1;s.value=c;l.textContent=`${c} ลูก`;this._doMarbleCalc(c);},
@@ -321,7 +321,7 @@ const App = {
   calcEchoNeed(){const need=parseInt(document.getElementById('echoNeedInput')?.value)||0;const r=document.getElementById('echoNeedResult');if(need<=0){r.innerHTML='';return;}const combo=this._calcOptimalPacks(need);r.innerHTML=this._calcSummaryHTML(combo);},
 
   // Topup calc: match on echoes (without bonus) so ยอดเติม matches customer's request
-  calcTopup(){const need=parseInt(document.getElementById('topupCalcInput')?.value)||0;const r=document.getElementById('topupCalcResult');if(need<=0){r.innerHTML='';return;}const combo=this._calcOptimalPacks(need,null,'echoes');r.innerHTML=this._calcSummaryHTML(combo,`<div class="summary-row" style="color:var(--primary);"><span>🎯 ยอดเติมที่ต้องการ</span><span>${need.toLocaleString()} กระดุม</span></div>`);},
+  calcTopup(){const need=parseInt(document.getElementById('topupCalcInput')?.value)||0;const r=document.getElementById('topupCalcResult');if(need<=0){r.innerHTML='';return;}const combo=this._calcOptimalPacks(need,null,'echoes');r.innerHTML=this._calcSummaryHTML(combo,`<div class="summary-row" style="color:var(--primary);"><span>🍼 ยอดเติมที่ต้องการ</span><span>${need.toLocaleString()} กระดุม</span></div>`);},
 
   _addCalcToCart(){if(!this._lastCalcCombo||this._lastCalcCombo.packs.length===0)return;this._lastCalcCombo.packs.forEach(p=>{const key=`${p.id}-private`;const product=Store.getProducts().find(x=>x.id===p.id);const ex=this.cart.find(c=>c.key===key);if(ex){ex.qty+=p.qty;if(product&&product.volumeDiscount){const vd=product.volumeDiscount.slice().sort((a,b)=>b.minQty-a.minQty).find(v=>ex.qty>=v.minQty);if(vd)ex.price=vd.price;}}else this.cart.push({key,id:p.id,name:p.name,type:'private',echoes:p.echoes,bonus:p.bonus,totalEcho:p.totalEcho,price:p.price,cost:p.cost||0,qty:p.qty,isSkin:false,volumeDiscount:product?.volumeDiscount||null});});this.updateCartBadge();this.recalcCart();this.showToast('🛒 เพิ่มลงตะกร้าแล้ว!','success');},
 
@@ -410,7 +410,7 @@ const App = {
       <label class="form-label">📱 ช่องทางชำระเงิน</label>
       <div class="pay-method">${methods.map((m,i)=>`<div class="pay-method-btn ${i===0?'selected':''}" onclick="App._selectPayMethod(${i})"><div class="pm-icon">${m.icon||'💳'}</div><div class="pm-name">${m.name}</div></div>`).join('')}</div>
       <div id="payMethodInfo"></div>
-      <div class="form-group"><label class="form-label">📸 อัปโหลดสลิป</label>
+      <div class="form-group"><label class="form-label">🍡 อัปโหลดสลิป</label>
         <div class="slip-upload" onclick="document.getElementById('slipFile').click()"><div style="font-size:2rem;margin-bottom:8px;">📄</div><p style="color:var(--text-secondary);font-size:0.85rem;">คลิกเพื่อเลือกรูปสลิป</p><input type="file" id="slipFile" accept="image/*" style="display:none;" onchange="App.handleSlipUpload(event)"></div>
         <div id="slipPreviewArea"></div></div>
       <button class="btn btn-primary btn-lg" style="width:100%;" onclick="App.submitOrderWithSlip('${orderType}')">✅ ยืนยันสั่งซื้อ</button>`;
@@ -468,7 +468,7 @@ const App = {
     const c=document.getElementById('page-rental');const rentals=Store.getRentals().filter(r=>r.active);this._selectedDate=this._selectedDate||new Date().toISOString().split('T')[0];
     const statusLabel=(s)=>s==='not_available'?'🔴 ไม่ปล่อยเช่า':s==='not_yet'?'🟡 ยังไม่ปล่อยเช่า':'🟢 ปล่อยเช่าปกติ';
     const statusColor=(s)=>s==='not_available'?'#F44336':s==='not_yet'?'#FF9800':'#4CAF50';
-    c.innerHTML=`<div class="page-header animate-fade-in-up"><h1 class="page-title">🎮 ไอดีปล่อยเช่า</h1><p class="page-description">เลือกไอดีที่สนใจแล้วจองเวลาเช่าได้เลยค่ะ</p></div>
+    c.innerHTML=`<div class="page-header animate-fade-in-up"><h1 class="page-title">🌸 ไอดีปล่อยเช่า</h1><p class="page-description">เลือกไอดีที่สนใจแล้วจองเวลาเช่าได้เลยค่ะ</p></div>
       <div class="grid-3 animate-fade-in-up">${rentals.map(r=>{const rs=r.rentalStatus||'available';const canBook=rs==='available';return`<div class="rental-card ${this._selectedRentalId===r.id?'selected':''} ${!canBook?'rental-unavailable':''}" onclick="${canBook?`App.selectRental(${r.id})`:''}">
         <div class="rental-card-img">${r.image?`<img src="${r.image}" alt="${r.name}">`:`<span class="rental-card-emoji">${r.emoji}</span>`}</div>
         <div class="rental-card-body">
