@@ -91,16 +91,45 @@ const App = {
       </div>
       <div class="service-grid">${btns.map(b=>`<div class="service-btn" onclick="${b.action==='link'?`window.open('${b.target}','_blank')`:`App.navigate('${b.target}')`}">
         <div class="svc-icon">${b.image?`<img src="${b.image}" alt="${b.name}">`:b.icon}</div><div class="svc-name">${b.name}</div></div>`).join('')}</div>
-      ${promos.length>0?`<div style="margin-top:28px;"><h2 style="margin-bottom:16px;">📣 ข่าวสาร & โปรโมชั่น</h2>${promos.map(p=>`
-      <div class="post-card" style="cursor:pointer;" onclick="App._promoId=${p.id};App.navigate('promodetail');">
-        ${(p.images&&p.images.length>0)?`<div class="post-image"><img src="${p.images[0]}" alt="${p.title}"></div>`:''}
-        <div class="post-content"><div class="post-title">${p.title}</div><div class="post-desc">${p.description}</div><div style="color:var(--primary);font-size:0.85rem;margin-top:6px;font-weight:600;">อ่านเพิ่มเติม →</div></div>
-      </div>`).join('')}</div>`:''}
+      ${promos.length>0?`<div style="margin-top:28px;"><h2 style="margin-bottom:16px;">📣 ข่าวสาร & โปรโมชั่น</h2>
+      <div class="promo-slider">
+        <div class="promo-slides" id="promoSlides">
+          ${promos.map(p=>`<div class="promo-slide-item">
+            <div class="post-card" style="cursor:pointer; margin-bottom:0;" onclick="App._promoId=${p.id};App.navigate('promodetail');">
+              ${(p.images&&p.images.length>0)?`<div class="post-image"><img src="${p.images[0]}" alt="${p.title}"></div>`:''}
+              <div class="post-content"><div class="post-title">${p.title}</div><div class="post-desc">${p.description}</div><div style="color:var(--primary);font-size:0.85rem;margin-top:6px;font-weight:600;">อ่านเพิ่มเติม →</div></div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+      ${promos.length>1?`<div class="promo-dots">${promos.map((_,i)=>`<div class="promo-dot ${i===0?'active':''}" onclick="App.setPromoSlide(${i})"></div>`).join('')}</div>`:''}
+      </div>`:''}
       ${faqs.length>0?`<div style="margin-top:24px;"><h2 style="margin-bottom:16px;">📢 ตอบคำถามที่พบบ่อย</h2>${faqs.map(f=>`
       <div class="faq-card" onclick="App._faqId=${f.id};App.navigate('faqdetail');"><div class="faq-q">❓ ${f.question}</div><div class="faq-a">${f.shortAnswer}</div><div class="faq-more">...อ่านต่อ →</div></div>`).join('')}</div>`:''}
       <div class="contact-row"><a href="https://www.facebook.com/share/16RiyzPHqX/" target="_blank" class="contact-card"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="var(--primary)" style="margin-right:4px;"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.312h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg> <span>Facebook</span></a><a href="https://www.facebook.com/share/1E5GKvtGQi/" target="_blank" class="contact-card">💳 <span>เช็คเครดิต</span></a></div>
     </div>`;
+    </div>`;
+    setTimeout(()=>this.setupPromoSlider(promos.length),0);
   },
+
+  _promoCurrentSlide: 0,
+  _promoInterval: null,
+  setupPromoSlider(count) {
+    clearInterval(this._promoInterval);
+    if(count <= 1) return;
+    this._promoCurrentSlide = 0;
+    this._promoInterval = setInterval(() => this.nextPromoSlide(), 5000);
+    const slides = document.getElementById('promoSlides');
+    if(!slides) return;
+    let startX = 0, currentTranslate = 0, isDragging = false;
+    slides.addEventListener('touchstart', e => { startX = e.touches[0].clientX; isDragging = true; clearInterval(this._promoInterval); slides.style.transition = 'none'; }, {passive:true});
+    slides.addEventListener('touchmove', e => { if(!isDragging) return; const walk = e.touches[0].clientX - startX; currentTranslate = -(this._promoCurrentSlide * 100) + (walk/slides.offsetWidth)*100; slides.style.transform = `translateX(${currentTranslate}%)`; }, {passive:true});
+    slides.addEventListener('touchend', e => { isDragging = false; slides.style.transition = 'transform 0.5s ease'; const changed = e.changedTouches[0].clientX - startX; if(changed < -50) this.nextPromoSlide(); else if(changed > 50) this.prevPromoSlide(); else this.updatePromoSlide(); this._promoInterval = setInterval(() => this.nextPromoSlide(), 5000); });
+  },
+  nextPromoSlide() { const p = Store.getPromos().filter(x=>x.active); if(!p.length)return; this._promoCurrentSlide = (this._promoCurrentSlide + 1) % p.length; this.updatePromoSlide(); },
+  prevPromoSlide() { const p = Store.getPromos().filter(x=>x.active); if(!p.length)return; this._promoCurrentSlide = (this._promoCurrentSlide - 1 + p.length) % p.length; this.updatePromoSlide(); },
+  updatePromoSlide() { const slides = document.getElementById('promoSlides'); if(slides) slides.style.transform = `translateX(-${this._promoCurrentSlide * 100}%)`; document.querySelectorAll('.promo-dot').forEach((d, i) => d.className = `promo-dot ${i === this._promoCurrentSlide ? 'active' : ''}`); },
+  setPromoSlide(idx) { this._promoCurrentSlide = idx; this.updatePromoSlide(); clearInterval(this._promoInterval); this._promoInterval = setInterval(() => this.nextPromoSlide(), 5000); },
 
   renderFAQDetail(){const c=document.getElementById('page-faqdetail');const f=Store.getFAQ().find(q=>q.id===this._faqId);if(!f){this.navigate('home');return;}c.innerHTML=`<div class="animate-fade-in-up"><button class="btn btn-ghost" onclick="App.navigate('home')" style="margin-bottom:16px;">← กลับ</button><div class="card"><h2 style="margin-bottom:16px;">❓ ${f.question}</h2><p style="line-height:1.8;white-space:pre-wrap;">${f.fullAnswer}</p></div></div>`;},
 

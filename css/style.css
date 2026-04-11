@@ -211,6 +211,12 @@ input,select,textarea{font-family:var(--font-th);outline:none;}
 .faq-card .faq-more{color:var(--primary);font-size:0.8rem;font-weight:600;margin-top:4px;}
 
 /* Post Card (promos on homepage) */
+.promo-slider{overflow:hidden;position:relative;margin-bottom:16px;border-radius:var(--radius-lg);width:100%;}
+.promo-slides{display:flex;transition:transform 0.5s ease;touch-action:pan-y pinch-zoom;}
+.promo-slide-item{flex:0 0 100%;width:100%;padding:0 4px;box-sizing:border-box;}
+.promo-dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
+.promo-dot{width:8px;height:8px;border-radius:50%;background:var(--border-color);cursor:pointer;}
+.promo-dot.active{background:var(--primary);}
 .post-card{background:var(--bg-card);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-color);box-shadow:var(--shadow-sm);transition:all var(--transition-normal);margin-bottom:16px;}
 .post-card:hover{box-shadow:var(--shadow-md);}
 .post-card .post-image{width:100%;cursor:pointer;overflow:hidden;}
