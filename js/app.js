@@ -108,7 +108,6 @@ const App = {
       <div class="faq-card" onclick="App._faqId=${f.id};App.navigate('faqdetail');"><div class="faq-q">❓ ${f.question}</div><div class="faq-a">${f.shortAnswer}</div><div class="faq-more">...อ่านต่อ →</div></div>`).join('')}</div>`:''}
       <div class="contact-row"><a href="https://www.facebook.com/share/16RiyzPHqX/" target="_blank" class="contact-card"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="var(--primary)" style="margin-right:4px;"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.312h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg> <span>Facebook</span></a><a href="https://www.facebook.com/share/1E5GKvtGQi/" target="_blank" class="contact-card">💳 <span>เช็คเครดิต</span></a></div>
     </div>`;
-    </div>`;
     setTimeout(()=>this.setupPromoSlider(promos.length),0);
   },
 
