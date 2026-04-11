@@ -196,8 +196,8 @@ input,select,textarea{font-family:var(--font-th);outline:none;}
 
 /* Shop Header */
 .shop-header{text-align:center;margin:20px 0;line-height:1.8;}
-.shop-header .shop-name{font-size:100px;font-weight:500;letter-spacing:1px;}
-.shop-header .shop-tag{font-size:25px;color:var(--text-secondary);}
+.shop-header .shop-name{font-size:3rem;font-weight:500;letter-spacing:1px;}
+.shop-header .shop-tag{font-size:2rem;color:var(--text-secondary);}
 
 /* Status Row (shop status + queues) */
 .status-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:16px 0;}
