@@ -53,8 +53,6 @@ const Store = {
     chatbot_img: 'assets/images/chatbot.png',
     products: null, skin_packs: null,
     orders: [], users: [],
-    admin_user: 'PlengloveKB',
-    admin_pass: '4t.4{@],EzUkq~L_PKBxJEsJsMYLOVEISKB@LC+5z%Q',
     buttons: null, promos: null, faq: null, rentals: null,
     bookings: [], bank: null, chatbot: null, theme: 'light',
     banner_size: 100, mascot_size: 100, chatbot_size: 100, chatbot_bottom: 0,
@@ -82,7 +80,7 @@ const Store = {
   async init(){
     const paths = [
       'shop_status','marquee','banner','mascot','chatbot_img',
-      'products','skin_packs','orders','users','admin_user','admin_pass',
+      'products','skin_packs','orders','users',
       'buttons','promos','faq','rentals','bookings','bank','chatbot',
       'banner_size','mascot_size','chatbot_size','chatbot_bottom',
       'order_banner','gift_banner','order_banner_size','gift_banner_size',
@@ -134,7 +132,7 @@ const Store = {
   _setupListeners(){
     // Simple listeners (just cache update)
     const simplePaths = ['products','skin_packs','buttons','promos','faq','rentals',
-      'bank','chatbot','orders','bookings','admin_user','admin_pass','users',
+      'bank','chatbot','orders','bookings','users',
       'order_banner_size','gift_banner_size','loading_img_size',
       'banner_size','chatbot_bottom',
       'receipt_note_topup','receipt_note_send','receipt_note_rental',
@@ -240,11 +238,6 @@ const Store = {
     const i = users.findIndex(u => u.id === userId);
     if(i !== -1){ users[i].banned = ban; this._fbSet('users', users); }
   },
-
-  getAdminUser(){ return this._cache['admin_user'] || 'PlengloveKB'; },
-  getAdminPass(){ return this._cache['admin_pass'] || '4t.4{@],EzUkq~L_PKBxJEsJsMYLOVEISKB@LC+5z%Q'; },
-  setAdminUser(u){ this._fbSet('admin_user', u); },
-  setAdminPass(p){ this._fbSet('admin_pass', p); },
 
   getOrderNotes(){ return this._cache['order_notes'] || []; },
   setOrderNotes(n){ this._fbSet('order_notes', n); },
