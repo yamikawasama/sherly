@@ -395,7 +395,7 @@ const App = {
       <div class="summary-row"><span>ยอดเติม (ไม่รวมโบนัส)</span><span style="font-weight:700;">${topupEcho.toLocaleString()} กระดุม</span></div>
       <div class="summary-row"><span>กระดุมรวมที่ได้</span><span style="font-weight:700;">${totalEcho.toLocaleString()} กระดุม</span></div>
       <div class="summary-row total"><span>💰 รวมราคา</span><span class="sr-val">฿${totalPrice.toLocaleString()}</span></div>
-    </div><button class="btn btn-primary btn-lg" style="width:100%;margin-top:16px;" onclick="App.proceedCheckout()">📋 สั่งซื้อ</button>`;
+    </div>${Store.getShopStatus().open?'<button class="btn btn-primary btn-lg" style="width:100%;margin-top:16px;" onclick="App.proceedCheckout()">📋 สั่งซื้อ</button>':'<button class="btn btn-disabled btn-lg" style="width:100%;margin-top:16px;background:#ccc;border-color:#ccc;color:#666;" disabled> วันนี้ร้านปิดแล้วค่ะรอร้านเปิดน้า ᶻ 𝗓 𐰁 </button>'}`;
   },
 
   // ========== CHECKOUT ==========
@@ -459,7 +459,7 @@ const App = {
       <div class="grid-2 animate-fade-in-up" style="margin-top:20px;">${skins.map(s=>`<div class="card" style="text-align:center;">
         <div style="font-size:3rem;margin-bottom:8px;">${s.image?`<img src="${s.image}" style="width:80px;height:80px;border-radius:12px;margin:0 auto;object-fit:cover;">`:s.emoji}</div>
         <h4>${s.name}</h4><div style="font-size:0.85rem;color:var(--text-secondary);margin:8px 0;">${s.targetEcho.toLocaleString()} กระดุม</div>
-        <button class="btn btn-primary" onclick="App.orderGift(${s.id})">🎁 ส่ง ${(s.sendPrice||0).toLocaleString()} บาท</button>
+        ${Store.getShopStatus().open?`<button class="btn btn-primary" onclick="App.orderGift(${s.id})">🎁 ส่ง ${(s.sendPrice||0).toLocaleString()} บาท</button>`:'<button class="btn btn-disabled" style="background:#ccc;border-color:#ccc;color:#666;" disabled> วันนี้ร้านปิดแล้วค่ะรอร้านเปิดน้า ᶻ 𝗓 𐰁 </button>'}
       </div>`).join('')}</div>`;
   },
   orderGift(skinId){const s=Store.getSkinPacks().find(x=>x.id===skinId);if(!s)return;const calc=this._autoCalcSkinPack(s.targetEcho);this.cart=[{key:`gift-skin-${skinId}`,id:s.id,name:s.name,type:'send',echoes:calc.topupEcho,bonus:calc.totalEcho-calc.topupEcho,totalEcho:calc.totalEcho,price:s.sendPrice||calc.privatePrice,cost:s.cost||0,qty:1,isSkin:true}];this.updateCartBadge();this._showPaymentModal('send');},
@@ -496,7 +496,7 @@ const App = {
       <div class="form-group"><input class="form-input" type="date" value="${this._selectedDate}" onchange="App._selectedDate=this.value;App._selectedSlots=[];App.renderRental();" style="max-width:250px;"></div>
       <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:8px;">กดเลือกช่วงเวลา</p>
       <div class="rental-calendar">${Array.from({length:24},(_,i)=>{const booked=bookedHours.has(i);const selected=this._selectedSlots.includes(i);return`<div class="rental-slot ${booked?'booked':selected?'selected':''}" onclick="${!booked?`App.toggleSlot(${i})`:''}">${String(i).padStart(2,'0')}:00</div>`;}).join('')}</div>
-      ${this._selectedSlots.length>0?`<div class="summary-box" style="margin-top:16px;"><div class="summary-row"><span>เวลา</span><span>${Math.min(...this._selectedSlots)}:00 - ${Math.max(...this._selectedSlots)+1}:00</span></div><div class="summary-row"><span>จำนวน</span><span>${this._selectedSlots.length} ชม.</span></div><div class="summary-row total"><span>💰 ราคารวม</span><span class="sr-val">฿${(this._selectedSlots.length*rental.pricePerHour).toLocaleString()}</span></div></div><button class="btn btn-primary btn-lg" style="width:100%;margin-top:12px;" onclick="App.bookRental()">📋 จองเลย</button>`:''}
+      ${this._selectedSlots.length>0?`<div class="summary-box" style="margin-top:16px;"><div class="summary-row"><span>เวลา</span><span>${Math.min(...this._selectedSlots)}:00 - ${Math.max(...this._selectedSlots)+1}:00</span></div><div class="summary-row"><span>จำนวน</span><span>${this._selectedSlots.length} ชม.</span></div><div class="summary-row total"><span>💰 ราคารวม</span><span class="sr-val">฿${(this._selectedSlots.length*rental.pricePerHour).toLocaleString()}</span></div></div>${Store.getShopStatus().open?'<button class="btn btn-primary btn-lg" style="width:100%;margin-top:12px;" onclick="App.bookRental()">📋 จองเลย</button>':'<button class="btn btn-disabled btn-lg" style="width:100%;margin-top:12px;background:#ccc;border-color:#ccc;color:#666;" disabled> วันนี้ร้านปิดแล้วค่ะรอร้านเปิดน้า ᶻ 𝗓 𐰁 </button>'}`:''}
     </div>`;
   },
   toggleSlot(hour){const idx=this._selectedSlots.indexOf(hour);if(idx>=0)this._selectedSlots.splice(idx,1);else this._selectedSlots.push(hour);this._selectedSlots.sort((a,b)=>a-b);this.renderRental();},
