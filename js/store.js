@@ -93,10 +93,10 @@ const Store = {
     paths.forEach(p => { this._cache[p] = this._getDefault(p); });
 
     try {
-      // Race Firebase load vs 8-second timeout
+      // Race Firebase load vs 30-second timeout
       await Promise.race([
         this._loadFromFirebase(paths),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000))
       ]);
     } catch(e) {
       console.warn('⚠️ Firebase load timeout/error, using defaults:', e.message);

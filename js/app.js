@@ -9,19 +9,37 @@ const App = {
   _mobilePreview:false, _guideShown:{},  // track dismissed guides per session
 
   async init() {
-    this.setupLoading(); // Start loading timer immediately
+    // setupLoading does nothing now, we hide it manually
+    
     // Wait for Firebase data to load
     await Store.init();
+    
+    // Wait for initial auth state
+    await new Promise(resolve => {
+      const unsubscribe = auth.onAuthStateChanged(user => {
+        if(user) { this.adminLoggedIn = true; }
+        else { this.adminLoggedIn = false; }
+        unsubscribe();
+        resolve();
+      });
+    });
+
     document.documentElement.setAttribute('data-theme',Store.getTheme());
     this.applyLoadingImg();
     this.updateMarquee(); this.updateShopStatus(); this.updateMascot(); this.updateChatbotImg(); this.applyChatbotSize(); this.applyMascotSize(); this.applyChatbotBottom();
     this.setupNav(); this.setupTheme(); this.setupChatbot(); this.updateAuthUI(); this.setupMobile(); this.setupSidebarToggle();
+    
+    // Listen for future auth changes
     auth.onAuthStateChanged(user=>{if(user){this.adminLoggedIn=true;this.updateAuthUI();if(this.currentPage==='admin')this.renderAdmin();}else{this.adminLoggedIn=false;this.updateAuthUI();if(this.currentPage==='admin')this.navigate('home');}});
+    
     const hash=window.location.hash.slice(1)||'home'; this.navigate(hash);
     window.addEventListener('hashchange',()=>this.navigate(window.location.hash.slice(1)||'home'));
+    
+    // Hide loading screen now
+    const l=document.getElementById('loadingScreen');if(l)l.classList.add('hidden');
   },
 
-  setupLoading(){setTimeout(()=>{const l=document.getElementById('loadingScreen');if(l)l.classList.add('hidden');},2200);},
+  setupLoading(){ /* removed 2.2s auto-hide */ },
   updateMarquee(){const e=document.getElementById('marqueeText');if(e)e.textContent=Store.getMarquee();},
   updateShopStatus(){const s=Store.getShopStatus();const e=document.getElementById('shopStatus');if(e){e.className=`shop-status ${s.open?'open':'closed'}`;e.innerHTML=`<span class="status-dot"></span>${s.open?'เปิดร้าน':'ปิดร้าน'}`;}},
   updateMascot(){const m=Store.getMascot();const logo=document.getElementById('sidebarLogo');if(m&&logo)logo.innerHTML=`<img src="${m}" alt="Mascot" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;},
